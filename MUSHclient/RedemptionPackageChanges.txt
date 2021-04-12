@@ -1,4 +1,7 @@
 Redemption Client Package Major Changes List
 
+r0001 snapshot
+- Does it all begin here? 
+
 Beta
 - initial beta release (Yay!)
