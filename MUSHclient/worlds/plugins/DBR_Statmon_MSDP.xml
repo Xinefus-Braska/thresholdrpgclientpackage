@@ -32,11 +32,11 @@ Attribute Monitor.
 
 <aliases>
 <alias
-   match="resetdbummo"
+   match="resetdbr"
    enabled="y"
    sequence="100"
    ignore_case="y"
-   script="reset_dbummo"
+   script="reset_dbr"
 ></alias>
 </aliases>
 
@@ -90,7 +90,7 @@ for k,v in pairs(data_color_defaults) do
    data_colors[k] = data_colors[k] or v
 end
 
-function reset_dbummo()
+function reset_dbr()
   stacked = 0
   font_name = default_font_name
   font_size = default_font_size

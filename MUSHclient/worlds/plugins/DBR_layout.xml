@@ -29,7 +29,7 @@ My Github : https://github.com/Xinefus-Braska
 
 <alias
    script="LayoutCommand"
-   match="^dbummo layout( lock| unlock| save| forget| restore| list| help| reset)?( .*)?"
+   match="^dbr layout( lock| unlock| save| forget| restore| list| help| reset)?( .*)?"
    regexp="y"
    enabled="y"
    sequence="100"
@@ -45,9 +45,9 @@ My Github : https://github.com/Xinefus-Braska
 ></alias>
 
 <alias
-   name="resetdbummo"
-   script="reset_dbummo"
-   match="resetdbummo"
+   name="resetdbr"
+   script="reset_dbr"
+   match="resetdbr"
    enabled="y"
    sequence="100"
    ignore_case="y"
@@ -85,14 +85,14 @@ function LayoutHelp()
    print("")
    print("DBU - MMO MUSHclient Layout Command Help")
    print("--------------------------------------------------------------------------------")
-   print("dbummo layout lock               :  prevent dragging miniwindows")
-   print("dbummo layout unlock             :  allow dragging miniwindows")
-   print("dbummo layout save <keyword>     :  store the current layout as the given keyword")
-   print("dbummo layout restore <keyword>  :  restore the layout for the given keyword")
-   print("dbummo layout forget <keyword>   :  forget the layout for the given keyword")
-   print("dbummo layout list               :  list all stored layout keywords")
-   print("dbummo layout help               :  show this command help")
-   print("dbummo layout reset              :  like resetdbummo, but better")
+   print("dbr layout lock               :  prevent dragging miniwindows")
+   print("dbr layout unlock             :  allow dragging miniwindows")
+   print("dbr layout save <keyword>     :  store the current layout as the given keyword")
+   print("dbr layout restore <keyword>  :  restore the layout for the given keyword")
+   print("dbr layout forget <keyword>   :  forget the layout for the given keyword")
+   print("dbr layout list               :  list all stored layout keywords")
+   print("dbr layout help               :  show this command help")
+   print("dbr layout reset              :  like resetdbr, but better")
    print("")
    LockStatus()
    print("")
@@ -134,9 +134,9 @@ function LayoutCommand(name, line, wildcards)
       end
    elseif wildcards[1] == " reset" then
       reset_main()
-      EnableAlias("resetdbummo", false)
-      Execute("resetdbummo")
-      EnableAlias("resetdbummo", true)
+      EnableAlias("resetdbr", false)
+      Execute("resetdbr")
+      EnableAlias("resetdbr", true)
    elseif wildcards[1] == "" or wildcards[1] == " help" then
       LayoutHelp()
    end
@@ -184,7 +184,7 @@ function LayoutStore(key)
    miniwindows = WindowList()
    if miniwindows then
       current_layout = {
-         ["dbummo_layout_trect"] = {
+         ["dbr_layout_trect"] = {
                ["trleft"] = textrect_left,
                ["trright"] = textrect_right,
                ["trtop"] = textrect_top,
@@ -211,7 +211,7 @@ function LayoutRestore(key)
    all_layouts = FetchLayouts()
    layout = all_layouts[key]
    if layout then
-      trect = layout["dbummo_layout_trect"]
+      trect = layout["dbr_layout_trect"]
       textrect_left = trect["trleft"]
       textrect_right = trect["trright"]
       textrect_top = trect["trtop"]
@@ -219,7 +219,7 @@ function LayoutRestore(key)
       SaveLayout()
       check_geometry()
       for mwid,rect in pairs(layout) do
-         if mwid ~= "dbummo_layout_trect" then
+         if mwid ~= "dbr_layout_trect" then
             bg = WindowInfo(mwid, 9)
             if bg then
                pid = WindowInfo(mwid, 23)
@@ -376,7 +376,7 @@ function SaveEnabled()
    SetVariable ("enabled", tostring (GetPluginInfo (GetPluginID (), 17)))
 end
 
-function reset_dbummo()
+function reset_dbr()
    reset_main()
    LayoutHelp()
 end

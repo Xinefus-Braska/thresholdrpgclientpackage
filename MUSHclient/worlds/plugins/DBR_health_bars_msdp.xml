@@ -32,11 +32,11 @@ DBU - MMO MSDP based health bars
 
 <aliases>
 <alias
-   match="resetdbummo"
+   match="resetdbr"
    enabled="y"
    sequence="100"
    ignore_case="y"
-   script="reset_dbummo"
+   script="reset_dbr"
 ></alias>
 </aliases>
 
@@ -97,7 +97,7 @@ string.rpad = function(str, len, char)
    return str .. string.rep(char, len - #str)
 end
 
-function reset_dbummo()
+function reset_dbr()
    font_name = default_font_name
    font_size = default_font_size
    WindowPosition(win, default_x, default_y, 0, 18)
