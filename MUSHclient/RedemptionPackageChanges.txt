@@ -1,7 +1,10 @@
 Redemption Client Package Major Changes List
 
+r0002 snapshot
+- Rollback to pre-miniwindow helper.
+
 r0001 snapshot
-- Does it all begin here? 
+- Does it all begin here?
 
 Beta
 - initial beta release (Yay!)

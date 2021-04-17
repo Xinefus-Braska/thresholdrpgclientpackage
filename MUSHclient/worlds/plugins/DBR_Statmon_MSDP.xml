@@ -1,0 +1,1088 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE muclient>
+<!-- Originally based on work by Lasher -->
+<muclient>
+<plugin
+   name="DBR_Statmon"
+   author="Braska"
+   id="ef4a86dbc9cd4dd6f4c69386"
+   language="Lua"
+   purpose="Attribute Monitor"
+   date_written="2010-08-15 21:25:03"
+   requires="4.73"
+   version="2.1"
+   save_state="y"
+>
+<!--
+
+Thanks to Fiendish of Aardwolf who provided the base and starting point for all of this.
+Original files sourced from: https://github.com/fiendish/aardwolfclientpackage
+
+Thank you!!
+
+My Github : https://github.com/Xinefus-Braska
+
+ -->
+<description trim="y">
+
+Attribute Monitor.
+
+</description>
+</plugin>
+
+<aliases>
+<alias
+   match="resetdbummo"
+   enabled="y"
+   sequence="100"
+   ignore_case="y"
+   script="reset_dbummo"
+></alias>
+</aliases>
+
+<!--  Script  -->
+
+<script>
+<![CDATA[
+
+require "DBR_register_z_on_create"
+require "mw_theme_base"
+require "serialize"
+require "movewindow"
+require "commas"
+require "MSDPHelper"
+require "copytable"
+
+default_width         = 250
+default_height        = 660
+default_x             = 730 + Theme.RESIZER_SIZE + 8
+default_y             = 0
+RESIZE_TAG_SIZE = 10
+MIN_SIZE        = 100
+LEFT_MARGIN     = 10
+TOP_MARGIN      = 5
+
+-- Variables not saved.
+startx     = ""
+starty     = ""
+posx       = ""
+posy       = ""
+hotspot_id = ""
+cstyles    = {}
+page_built = false
+max_width  = 0
+
+-- functions for handling color codes
+require "DBR_colors"
+
+color_indices = {"Strength","Intelligence","Wisdom","Dexterity","Constitution","Luck","Charisma",
+                "Align","Zeni","Boost","AC","RPP","TP","QP","SM","BP","Rage","Name","Root",
+                "Gained","Earth","Namek","BStar","PK","BK","MK","Spar","Arena","HBTC","PKTimer","BountyTimer"} --31
+
+data_color_defaults = {["Strength"]=0xFFFFFF,["Intelligence"]=0xFFFFFF,["Wisdom"]=0xFFFFFF,["Dexterity"]=0xFFFFFF,["Constitution"]=0xFFFFFF,["Luck"]=0xFFFFFF,["Charisma"]=0xFFFFFF,
+                      ["Align"]=0xFFFFFF,["Zeni"]=0x00FFFF,["Boost"]=0xFFFFFF,["AC"]=0xFFFFFF,["RPP"]=0xFFFFFF,["TP"]=0xFFFFFF,["QP"]=0xFFFFFF,["SM"]=0xFFFFFF,["BP"]=0xFFFFFF,["Rage"]=0xFFFFFF,["Name"]=0xFFFFFF,["Root"]=0xFFFFFF,
+                      ["Gained"]=0xFFFFFF,["Earth"]=0xFFFFFF,["Namek"]=0xFFFFFF,["BStar"]=0xFFFFFF,["PK"]=0xFFFFFF,["BK"]=0xFFFFFF,["MK"]=0xFFFFFF,["Spar"]=0xFFFFFF,["Arena"]=0xFFFFFF,["HBTC"]=0xFFFFFF,["PKTimer"]=0xFFFFFF,["BountyTimer"]=0xFFFFFF} --31
+
+assert (loadstring (GetVariable ("label_colors") or "label_colors = {}")) ()
+assert (loadstring (GetVariable ("data_colors") or "data_colors = {}")) ()
+
+for k,v in pairs(data_color_defaults) do
+   data_colors[k] = data_colors[k] or v
+end
+
+function reset_dbummo()
+  stacked = 0
+  font_name = default_font_name
+  font_size = default_font_size
+  commas_in_numbers   = false
+  WindowPosition(win, default_x, default_y, 0, 18)
+  WindowResize(win, default_width, default_height, Theme.PRIMARY_BODY)
+  --label_colors = {}
+  --data_colors = copytable.deep(data_color_defaults)
+  Repaint() -- hack because WindowPosition doesn't immediately update coordinates
+  SaveState()
+  OnPluginInstall()
+  BuildStatsPage()
+
+  if (page_built) then
+     resize_window()
+  end
+
+end
+
+bracket = {text=" : [",textcolour=Theme.BODY_TEXT}
+slash = {text="/",textcolour=Theme.BODY_TEXT}
+endbracket = {text="]",textcolour=Theme.BODY_TEXT}
+
+function BuildStatsPage()
+
+  max_width = 0
+  cstyles = {}
+
+  --- Check if we have data in each category, but only as much as necessary - once page built we can stop.
+  -- if (not text == "INT" or not text == "CON" or not text == "STR" or not text == "DEX" or not text == "CHA" or not text == "LCK" or not text == "WIS" or not text == "HEALTH" or not text == "MANA" or not text == "INT_PERM" or not text == "CON_PERM" or not text == "STR_PERM" or not text == "DEX_PERM" or not text == "CHA_PERM" or not text == "LCK_PERM" or not text == "WIS_PERM" or not text == "HEALTH_MAX" or not text == "MANA_MAX" or not text == "MONEY") then
+  --    return
+  -- end
+
+  if (stacked == 1) then
+
+    table.insert(cstyles, {
+      {text=string.format("%s", getmsdp("CHARACTER_NAME")),textcolour=data_colors["Name"]},
+      {text=string.format(" the %s %s", getmsdp("TRAIT"), getmsdp("RACE")),textcolour=data_colors["Name"]}
+      })
+
+    table.insert(cstyles, {})
+
+    if ( getmsdp("RACE") == "Aquarian" ) then
+      table.insert(cstyles, {
+        {text= "Hydration",textcolour=label_colors["Rage"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%5s",getmsdp("HYDRATION")),textcolour=data_colors["Rage"]},
+        endbracket
+      })
+    end
+
+    if ( getmsdp("RACE") == "Icer" ) then
+      table.insert(cstyles, {
+        {text= "Ego",textcolour=label_colors["Rage"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%5s",getmsdp("EGO")),textcolour=data_colors["Rage"]},
+        endbracket
+      })
+    end
+
+    if ( getmsdp("RACE") == "Saiyan" or getmsdp("RACE") == "Halfbreed" or getmsdp("RACE") == "Bioandroid") then
+      table.insert(cstyles, {
+        {text="Rage",textcolour=label_colors["Rage"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%5s",getmsdp("RAGE")),textcolour=data_colors["Rage"]},
+        endbracket
+      })
+    end
+
+    if ( getmsdp("RACE") == "Saibaman" and getmsdp("TRAIT") ~= "Sadala") then
+      table.insert(cstyles, {
+        {text="Root",textcolour=label_colors["Root"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%5s",getmsdp("ROOT")),textcolour=data_colors["Root"]},
+        endbracket
+      })
+
+    elseif ( getmsdp("RACE") == "Saibaman" and getmsdp("TRAIT") == "Sadala") then
+      table.insert(cstyles, {
+        {text="Root",textcolour=label_colors["Root"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%5s",getmsdp("ROOT")),textcolour=data_colors["Root"]},
+        endbracket,
+        {text="Rage",textcolour=label_colors["Rage"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%4s",getmsdp("RAGE")),textcolour=data_colors["Rage"]},
+        endbracket
+      })
+    end
+
+    table.insert(cstyles, {
+      {text="Zeni ",textcolour=label_colors["Zeni"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%11s",commas_in_numbers and commas(getmsdp("MONEY")) or getmsdp("MONEY")),textcolour=data_colors["Zeni"]},
+      endbracket,
+
+      {text="   Boost",textcolour=label_colors["Boost"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%2s",getmsdp("BOOST")), textcolour=data_colors["Boost"]},
+      endbracket,
+
+      {text="   Hours",textcolour=label_colors["Boost"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%5s",getmsdp("HOURS")), textcolour=data_colors["Boost"]},
+      endbracket,
+
+      {text="   Armor",textcolour=label_colors["Armor"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%5s",getmsdp("AC")), textcolour=data_colors["AC"]},
+      slash, {text=string.format("%5s",getmsdp("ENCUMBRANCE")), textcolour=data_colors["AC"]},
+      endbracket,
+
+      {text="   Align",textcolour=label_colors["Align"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%5s",getmsdp("ALIGNMENT")), textcolour=data_colors["Align"]},
+      endbracket
+    })
+
+    --table.insert(cstyles, {
+    --  {text="Affected",textcolour=label_colors["Affected"] or Theme.BODY_TEXT},
+    --  bracket,
+    --  {text=string.format("%s ", getmsdp("AFFECTS")),textcolour=data_colors["Affected"]},
+    --  endbracket
+    --})
+
+    table.insert(cstyles, {
+      {text="PL Gained",textcolour=label_colors["Gained"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%s ", getmsdp("PLGAIN")),textcolour=data_colors["Gained"]},
+      endbracket
+    })
+
+    table.insert(cstyles,{})
+
+    table.insert(cstyles, {
+      {text="Str",textcolour=label_colors["Strength"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%5s", getmsdp("STR")),textcolour=data_colors["Strength"]},
+      slash,
+      {text=string.format("%-5s", getmsdp("STR_PERM")),textcolour=data_colors["Strength"]},
+      endbracket,
+      {text=string.format("(%3s)", getmsdp("STR_GAIN")),textcolour=data_colors["Gained"]},
+
+      {text="   Int",textcolour=label_colors["Intelligence"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%5s", getmsdp("INT")),textcolour=data_colors["Intelligence"]},
+      slash,
+      {text=string.format("%-5s", getmsdp("INT_PERM")),textcolour=data_colors["Intelligence"]},
+      endbracket,
+      {text=string.format("(%3s)", getmsdp("INT_GAIN")),textcolour=data_colors["Gained"]},
+
+      {text="   Wis",textcolour=label_colors["Wisdom"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%5s", getmsdp("WIS")),textcolour=data_colors["Wisdom"]},
+      slash,
+      {text=string.format("%-5s", getmsdp("WIS_PERM")),textcolour=data_colors["Wisdom"]},
+      endbracket,
+      {text=string.format("(%3s)", getmsdp("WIS_GAIN")),textcolour=data_colors["Gained"]},
+
+      {text="   Lck",textcolour=label_colors["Luck"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%5s", getmsdp("LCK")),textcolour=data_colors["Luck"]},
+      slash,
+      {text=string.format("%-5s", getmsdp("LCK_PERM")),textcolour=data_colors["Luck"]},
+      endbracket,
+      {text=string.format("(%3s)", getmsdp("LCK_GAIN")),textcolour=data_colors["Gained"]}
+    })
+
+    table.insert(cstyles, {
+      {text="Dex",textcolour=label_colors["Dexterity"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%5s", getmsdp("DEX")),textcolour=data_colors["Dexterity"]},
+      slash,
+      {text=string.format("%-5s", getmsdp("DEX_PERM")),textcolour=data_colors["Dexterity"]},
+      endbracket,
+      {text=string.format("(%3s)", getmsdp("DEX_GAIN")),textcolour=data_colors["Gained"]},
+
+      {text="   Con",textcolour=label_colors["Constitution"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%5s", getmsdp("CON")),textcolour=data_colors["Constitution"]},
+      slash,
+      {text=string.format("%-5s", getmsdp("CON_PERM")),textcolour=data_colors["Constitution"]},
+      endbracket,
+      {text=string.format("(%3s)", getmsdp("CON_GAIN")),textcolour=data_colors["Gained"]},
+
+      {text="   Cha",textcolour=label_colors["Charisma"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%5s",getmsdp("CHA")), textcolour=data_colors["Charisma"]},
+      slash,
+      {text=string.format("%-5s", getmsdp("CHA_PERM")),textcolour=data_colors["Charisma"]},
+      endbracket,
+      {text=string.format("(%3s)", getmsdp("CHA_GAIN")),textcolour=data_colors["Gained"]}
+    })
+
+    table.insert(cstyles, { })
+
+    table.insert(cstyles, {
+      {text="QP   ",textcolour=label_colors["QP"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%4s",getmsdp("QP")), textcolour=data_colors["QP"]},
+      endbracket,
+
+      {text="   RPP  ",textcolour=label_colors["RPP"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%4s",getmsdp("RPP")), textcolour=data_colors["RPP"]},
+      endbracket,
+
+      {text="   SM   ",textcolour=label_colors["SM"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%4s",getmsdp("SM")), textcolour=data_colors["SM"]},
+      endbracket,
+
+      {text="   BP   ",textcolour=label_colors["BP"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%4s",getmsdp("BP")), textcolour=data_colors["BP"]},
+      endbracket,
+
+      {text="   TP   ",textcolour=label_colors["TP"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%4s",getmsdp("TP")), textcolour=data_colors["TP"]},
+      endbracket
+    })
+
+    table.insert(cstyles, {
+      {text="Earth",textcolour=label_colors["Earth"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%1s",getmsdp("DBEARTH")), textcolour=data_colors["Earth"]},
+      slash, {text="7"},endbracket,
+
+      {text="    Namek",textcolour=label_colors["Namek"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%1s",getmsdp("DBNAMEK")), textcolour=data_colors["Namek"]},
+      slash, {text="5"},endbracket,
+
+      {text="    BStar",textcolour=label_colors["BStar"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%1s",getmsdp("DBBLACK")), textcolour=data_colors["BStar"]},
+      slash, {text="2"},endbracket
+    })
+
+    table.insert(cstyles, { })
+
+    table.insert(cstyles, {
+      {text="PKills ",textcolour=label_colors["PK"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%5s",getmsdp("PKILLS")), textcolour=data_colors["PK"]},
+      endbracket,
+
+      {text="   MKills ",textcolour=label_colors["MK"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%5s",getmsdp("MKILLS")), textcolour=data_colors["MK"]},
+      endbracket,
+
+      {text="   SparWins  ",textcolour=label_colors["Spar"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%5s",getmsdp("SPARWIN")), textcolour=data_colors["Spar"]},
+      endbracket,
+
+      {text="   ArenaWins  ",textcolour=label_colors["Arena"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%5s",getmsdp("ARENAWIN")), textcolour=data_colors["Arena"]},
+      endbracket,
+
+      {text="   Bounty ",textcolour=label_colors["Bounty"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%5s",getmsdp("BOUNTY")), textcolour=data_colors["Bounty"]},
+      endbracket
+    })
+
+    table.insert(cstyles, {
+      {text="PDeaths",textcolour=label_colors["PK"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%5s",getmsdp("PDEATHS")), textcolour=data_colors["PK"]},
+      endbracket,
+
+      {text="   MDeaths",textcolour=label_colors["MK"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%5s",getmsdp("MDEATHS")), textcolour=data_colors["MK"]},
+      endbracket,
+
+      {text="   SparLosses",textcolour=label_colors["Spar"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%5s",getmsdp("SPARLOSS")), textcolour=data_colors["Spar"]},
+      endbracket,
+
+      {text="   ArenaLosses",textcolour=label_colors["Arena"] or Theme.BODY_TEXT},
+      bracket,
+      {text=string.format("%5s",getmsdp("ARENALOSS")), textcolour=data_colors["Arena"]},
+      endbracket
+    })
+
+    table.insert(cstyles, {})
+
+    --fighting = getmsdp("OPPONENT_NAME")
+
+    --if fighting ~= "" and fighting ~= null then
+    --  fstr = string.format("Foe : (%s/%s) %s",commas_in_numbers and commas(getmsdp("OPPONENT_HEALTH")) or getmsdp("OPPONENT_HEALTH"),commas_in_numbers and commas(getmsdp("OPPONENT_HEALTH_MAX")) or getmsdp("OPPONENT_HEALTH_MAX"),getmsdp("OPPONENT_NAME"))
+    --  table.insert(cstyles,ColoursToStyles(fstr))
+    --else
+    --  table.insert(cstyles,{text=""})
+    --end
+
+    else
+      table.insert(cstyles, {
+        {text=string.format("%s", getmsdp("CHARACTER_NAME")),textcolour=data_colors["Name"]},
+        {text=string.format(" the %s %s", getmsdp("TRAIT"), getmsdp("RACE")),textcolour=data_colors["Name"]}
+      })
+
+      table.insert(cstyles, {})
+
+      if ( getmsdp("RACE") == "Aquarian" ) then
+        table.insert(cstyles, {
+          {text= "Hydration",textcolour=label_colors["Rage"] or Theme.BODY_TEXT},
+          bracket,
+          {text=string.format("%5s",getmsdp("HYDRATION")),textcolour=data_colors["Rage"]},
+          endbracket
+        })
+      end
+
+      if ( getmsdp("RACE") == "Icer" ) then
+        table.insert(cstyles, {
+          {text= "Ego",textcolour=label_colors["Rage"] or Theme.BODY_TEXT},
+          bracket,
+          {text=string.format("%5s",getmsdp("EGO")),textcolour=data_colors["Rage"]},
+          endbracket
+        })
+      end
+
+      if ( getmsdp("RACE") == "Saiyan" or getmsdp("RACE") == "Halfbreed" or getmsdp("RACE") == "Bioandroid") then
+        table.insert(cstyles, {
+          {text="Rage",textcolour=label_colors["Rage"] or Theme.BODY_TEXT},
+          bracket,
+          {text=string.format("%5s",getmsdp("RAGE")),textcolour=data_colors["Rage"]},
+          endbracket
+        })
+      end
+
+      if ( getmsdp("RACE") == "Saibaman" and getmsdp("TRAIT") ~= "Sadala") then
+        table.insert(cstyles, {
+          {text="Root",textcolour=label_colors["Root"] or Theme.BODY_TEXT},
+          bracket,
+          {text=string.format("%5s",getmsdp("ROOT")),textcolour=data_colors["Root"]},
+          endbracket
+        })
+
+      elseif ( getmsdp("RACE") == "Saibaman" and getmsdp("TRAIT") == "Sadala") then
+        table.insert(cstyles, {
+          {text="Root",textcolour=label_colors["Root"] or Theme.BODY_TEXT},
+          bracket,
+          {text=string.format("%5s",getmsdp("ROOT")),textcolour=data_colors["Root"]},
+          endbracket,
+          {text="Rage",textcolour=label_colors["Rage"] or Theme.BODY_TEXT},
+          bracket,
+          {text=string.format("%4s",getmsdp("RAGE")),textcolour=data_colors["Rage"]},
+          endbracket
+        })
+      end
+
+      table.insert(cstyles, {
+        {text="Zeni     ",textcolour=label_colors["Zeni"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%11s",commas_in_numbers and commas(getmsdp("MONEY")) or getmsdp("MONEY")),textcolour=data_colors["Zeni"]},
+        endbracket
+      })
+
+      table.insert(cstyles, {
+        {text="Boost    ",textcolour=label_colors["Boost"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%2s",getmsdp("BOOST")), textcolour=data_colors["Boost"]},
+        endbracket
+      })
+
+      table.insert(cstyles, {
+        {text="Hours    ",textcolour=label_colors["Hours"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%5s",getmsdp("HOURS")), textcolour=data_colors["Hours"]},
+        endbracket
+      })
+
+      table.insert(cstyles, {
+        {text="Armor    ",textcolour=label_colors["AC"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%4s",getmsdp("AC")), textcolour=data_colors["AC"]},
+        slash, {text=string.format("%5s",getmsdp("ENCUMBRANCE")), textcolour=data_colors["AC"]},
+        endbracket
+      })
+
+      table.insert(cstyles, {
+        {text="Align    ",textcolour=label_colors["Align"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%5s",getmsdp("ALIGNMENT")), textcolour=data_colors["Align"]},
+        endbracket
+      })
+
+      --table.insert(cstyles, {
+      --  {text="Affected ",textcolour=label_colors["Affected"] or Theme.BODY_TEXT},
+      --  bracket,
+      --  {text=string.format("%s ", getmsdp("AFFECTS")),textcolour=data_colors["Affected"]},
+      --  endbracket
+      --})
+
+      table.insert(cstyles, {
+        {text="PL Gained",textcolour=label_colors["Gained"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%s ", getmsdp("PLGAIN")),textcolour=data_colors["Gained"]},
+        endbracket
+      })
+
+      table.insert(cstyles,{})
+
+      table.insert(cstyles, {
+        {text="Str",textcolour=label_colors["Strength"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%5s", getmsdp("STR")),textcolour=data_colors["Strength"]},
+        slash,
+        {text=string.format("%-5s", getmsdp("STR_PERM")),textcolour=data_colors["Strength"]},
+        endbracket,
+        {text=string.format(" (%3s)", getmsdp("STR_GAIN")),textcolour=data_colors["Gained"]}
+      })
+
+      table.insert(cstyles, {
+        {text="Int",textcolour=label_colors["Intelligence"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%5s", getmsdp("INT")),textcolour=data_colors["Intelligence"]},
+        slash,
+        {text=string.format("%-5s", getmsdp("INT_PERM")),textcolour=data_colors["Intelligence"]},
+        endbracket,
+        {text=string.format(" (%3s)", getmsdp("INT_GAIN")),textcolour=data_colors["Gained"]}
+      })
+
+      table.insert(cstyles, {
+        {text="Wis",textcolour=label_colors["Wisdom"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%5s", getmsdp("WIS")),textcolour=data_colors["Wisdom"]},
+        slash,
+        {text=string.format("%-5s", getmsdp("WIS_PERM")),textcolour=data_colors["Wisdom"]},
+        endbracket,
+        {text=string.format(" (%3s)", getmsdp("WIS_GAIN")),textcolour=data_colors["Gained"]}
+      })
+
+      table.insert(cstyles, {
+        {text="Dex",textcolour=label_colors["Dexterity"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%5s", getmsdp("DEX")),textcolour=data_colors["Dexterity"]},
+        slash,
+        {text=string.format("%-5s", getmsdp("DEX_PERM")),textcolour=data_colors["Dexterity"]},
+        endbracket,
+        {text=string.format(" (%3s)", getmsdp("DEX_GAIN")),textcolour=data_colors["Gained"]}
+      })
+
+      table.insert(cstyles, {
+        {text="Con",textcolour=label_colors["Constitution"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%5s", getmsdp("CON")),textcolour=data_colors["Constitution"]},
+        slash,
+        {text=string.format("%-5s", getmsdp("CON_PERM")),textcolour=data_colors["Constitution"]},
+        endbracket,
+        {text=string.format(" (%3s)", getmsdp("CON_GAIN")),textcolour=data_colors["Gained"]}
+      })
+
+      table.insert(cstyles, {
+        {text="Cha",textcolour=label_colors["Charisma"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%5s",getmsdp("CHA")), textcolour=data_colors["Charisma"]},
+        slash,
+        {text=string.format("%-5s", getmsdp("CHA_PERM")),textcolour=data_colors["Charisma"]},
+        endbracket,
+        {text=string.format(" (%3s)", getmsdp("CHA_GAIN")),textcolour=data_colors["Gained"]}
+      })
+
+      table.insert(cstyles, {
+        {text="Lck",textcolour=label_colors["Luck"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%5s", getmsdp("LCK")),textcolour=data_colors["Luck"]},
+        slash,
+        {text=string.format("%-5s", getmsdp("LCK_PERM")),textcolour=data_colors["Luck"]},
+        endbracket,
+        {text=string.format(" (%3s)", getmsdp("LCK_GAIN")),textcolour=data_colors["Gained"]}
+      })
+
+      table.insert(cstyles,{})
+
+      table.insert(cstyles, {
+        {text="QP ",textcolour=label_colors["QP"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%4s",getmsdp("QP")), textcolour=data_colors["QP"]},
+        endbracket,
+
+        {text="  RPP",textcolour=label_colors["RPP"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%4s",getmsdp("RPP")), textcolour=data_colors["RPP"]},
+        endbracket
+      })
+
+      table.insert(cstyles, {
+        {text="SM ",textcolour=label_colors["SM"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%4s",getmsdp("SM")), textcolour=data_colors["SM"]},
+        endbracket,
+
+        {text="  BP ",textcolour=label_colors["BP"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%4s",getmsdp("BP")), textcolour=data_colors["BP"]},
+        endbracket
+      })
+
+      table.insert(cstyles, {
+        {text="TP ",textcolour=label_colors["TP"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%4s",getmsdp("TP")), textcolour=data_colors["TP"]},
+        endbracket
+      })
+
+      table.insert(cstyles, { })
+
+      table.insert(cstyles, {
+        {text="Earth",textcolour=label_colors["Earth"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%1s",getmsdp("DBEARTH")), textcolour=data_colors["Earth"]},
+        slash, {text="7"},
+        endbracket
+      })
+
+      table.insert(cstyles, {
+        {text="Namek",textcolour=label_colors["Namek"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%1s",getmsdp("DBNAMEK")), textcolour=data_colors["Namek"]},
+        slash, {text="5"},
+        endbracket
+      })
+
+      table.insert(cstyles, {
+        {text="BStar",textcolour=label_colors["BStar"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%1s",getmsdp("DBBLACK")), textcolour=data_colors["BStar"]},
+        slash, {text="2"},
+        endbracket
+      })
+
+      table.insert(cstyles, { })
+
+      table.insert(cstyles, {
+        {text="PKills     ",textcolour=label_colors["PK"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%5s",getmsdp("PKILLS")), textcolour=data_colors["PK"]},
+        endbracket
+      })
+
+      table.insert(cstyles, {
+        {text="PDeaths    ",textcolour=label_colors["PK"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%5s",getmsdp("PDEATHS")), textcolour=data_colors["PK"]},
+        endbracket
+      })
+
+      table.insert(cstyles, {
+        {text="MKills     ",textcolour=label_colors["MK"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%5s",getmsdp("MKILLS")), textcolour=data_colors["MK"]},
+        endbracket
+      })
+
+      table.insert(cstyles, {
+        {text="MDeaths    ",textcolour=label_colors["MK"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%5s",getmsdp("MDEATHS")), textcolour=data_colors["MK"]},
+        endbracket
+      })
+
+      table.insert(cstyles, {
+        {text="SparWins   ",textcolour=label_colors["Spar"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%5s",getmsdp("SPARWIN")), textcolour=data_colors["Spar"]},
+        endbracket
+      })
+
+      table.insert(cstyles, {
+        {text="SparLosses ",textcolour=label_colors["Spar"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%5s",getmsdp("SPARLOSS")), textcolour=data_colors["Spar"]},
+        endbracket
+      })
+
+      table.insert(cstyles, {
+        {text="ArenaWins  ",textcolour=label_colors["Arena"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%5s",getmsdp("ARENAWIN")), textcolour=data_colors["Arena"]},
+        endbracket
+      })
+
+      table.insert(cstyles, {
+        {text="ArenaLosses",textcolour=label_colors["Arena"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%5s",getmsdp("ARENALOSS")), textcolour=data_colors["Arena"]},
+        endbracket
+      })
+
+      table.insert(cstyles, {
+        {text="Bounty     ",textcolour=label_colors["BP"] or Theme.BODY_TEXT},
+        bracket,
+        {text=string.format("%5s",getmsdp("BP")), textcolour=data_colors["BP"]},
+        endbracket
+      })
+
+      table.insert(cstyles, {})
+
+      --fighting = getmsdp("OPPONENT_NAME")
+
+      --if fighting ~= "" and fighting ~= null then
+      --  fstr = string.format("Foe : (%s/%s) %s",commas_in_numbers and commas(getmsdp("OPPONENT_HEALTH")) or getmsdp("OPPONENT_HEALTH"),commas_in_numbers and commas(getmsdp("OPPONENT_HEALTH_MAX")) or getmsdp("OPPONENT_HEALTH_MAX"),getmsdp("OPPONENT_NAME"))
+      --  table.insert(cstyles,ColoursToStyles(fstr))
+      --else
+      --  table.insert(cstyles,{text=""})
+      --end
+    end -- if stacked
+
+    for i,v in ipairs(cstyles) do
+      max_width = math.max(max_width, styleWidth(v)+LEFT_MARGIN)
+    end
+    page_built = true
+end -- BuildStatsPage
+
+function Print()
+   bodyleft, bodytop, bodyright, bodybottom = Theme.DrawBorder(win)
+   WindowRectOp(win, 2, bodyleft, bodytop, bodyright+1, bodybottom+1, Theme.PRIMARY_BODY) -- blank
+
+   if not page_built then
+      txt = "Stats will appear "
+      txtlen = WindowTextWidth(win,font_id,txt)
+      WindowText(win, font_id, txt, (width-txtlen)/2, (height/2)-line_height, bodyright, bodybottom, Theme.BODY_TEXT, utf8)
+      txt = "when play begins."
+      txtlen = WindowTextWidth(win,font_id,txt)
+      WindowText(win, font_id, txt, (width-txtlen)/2, height/2, bodyright, bodybottom, Theme.BODY_TEXT, utf8)
+   else
+      -- display each line
+      local left = LEFT_MARGIN
+      local top = 0
+      for i, v in ipairs(cstyles) do
+         top = TOP_MARGIN + (i - 1) * line_height
+         Theme.WindowTextFromStyles(win, font_id, v, left, top, bodyright, bodybottom)
+      end -- for
+      if cstyles[#cstyles].text == "" then
+         Theme.WindowTextFromStyles(win, font_id, {{text="Foe :",textcolour=0x444444}}, left, top, bodyright, bodybottom)
+      end
+   end
+
+   Theme.AddResizeTag(win, 1, nil, nil, "MouseDown", "ResizeMoveCallback", "ResizeReleaseCallback")
+
+   CallPlugin("abc1a0944ae4af7586ce88dc", "BufferedRepaint")
+end
+
+function RefreshPage()
+   BuildStatsPage()
+   Print()
+end
+
+-- right click menu
+function right_click_menu ()
+
+  colorstring = ">All Fields|All Labels|All Data|<|-|"
+  for k,v in pairs(color_indices) do
+    colorstring = colorstring..">"..v.."|"..v.." Label ("..RGBColourToName(label_colors[v] or Theme.BODY_TEXT)..")|"..v.." Data ("..RGBColourToName(data_colors[v])..")|<|"
+  end
+
+  menustring = "Flip Orientation|Change Font|>Colors|"..colorstring.."<|"..(commas_in_numbers and "+" or "").."Commas|-|Bring To Front|Send To Back|-|Reset Defaults"
+
+  result = WindowMenu (win,
+    WindowInfo (win, 14),  -- x position
+    WindowInfo (win, 15),   -- y position
+    menustring) -- content
+
+  if result == "Flip Orientation" then
+    stacked = (((stacked == 1) and 0) or 1)
+    SetVariable("stacked", stacked)
+    height           = orig_height
+    width            = default_width
+    SetVariable("width",width)
+    SetVariable("height",height)
+    SetVariable("font_name",font_name)
+    SetVariable("font_size",font_size)
+    OnPluginInstall()
+    BuildStatsPage()
+    if (page_built) then
+      if (max_width ~= 0) then
+        width = max_width+LEFT_MARGIN
+        height = max_height+TOP_MARGIN
+        SetVariable("width", width)
+        SetVariable("height",height)
+      end
+      resize_window()
+    end
+    SaveState()
+  elseif result == "Change Font" then
+    wanted_font = utils.fontpicker(font_name, font_size) --font dialog
+    if wanted_font then
+      font_name = wanted_font.name
+      font_size = wanted_font.size
+      SetVariable("font_name", font_name)
+      SetVariable("font_size", font_size)
+      SaveState()
+      OnPluginInstall()
+      BuildStatsPage()
+      if (page_built) then
+        if (max_width ~= 0) then
+          width = max_width+LEFT_MARGIN
+          height = max_height+TOP_MARGIN
+          SetVariable("width", width)
+          SetVariable("height",height)
+        end
+        resize_window()
+      end
+    end
+  elseif string.find(result,"Label") then
+    local item = string.sub(result,1,string.find(result,"Label")-2)
+    if item == "All" then
+      local newcolour = PickColour(Theme.BODY_TEXT)
+      if newcolour ~= -1 then
+        for i,v in pairs(color_indices) do
+          label_colors[v] = newcolour
+        end
+        SaveState()
+        RefreshPage()
+      end
+    else
+      local newcolour = PickColour(label_colors[item] or Theme.BODY_TEXT)
+      if newcolour ~= -1 then
+        label_colors[item] = newcolour
+        SaveState()
+        RefreshPage()
+      end
+    end
+  elseif string.find(result,"Data") then
+    local item = string.sub(result,1,string.find(result,"Data")-2)
+    if item == "All" then
+      local newcolour = PickColour(0xFFFFFF)
+      if newcolour ~= -1 then
+        for i,v in pairs(color_indices) do
+          data_colors[v] = newcolour
+        end
+        SaveState()
+        RefreshPage()
+      end
+    else
+      local newcolour = PickColour(data_colors[item])
+      if newcolour ~= -1 then
+        data_colors[item] = newcolour
+        SaveState()
+        RefreshPage()
+      end
+    end
+  elseif result == "Commas" then
+    commas_in_numbers = not commas_in_numbers
+    SaveState()
+    OnPluginInstall()
+    BuildStatsPage()
+    if (page_built) then
+      if (max_width ~= 0) then
+        width = max_width+LEFT_MARGIN
+        height = max_height+TOP_MARGIN
+        SetVariable("width", width)
+        SetVariable("height",height)
+      end
+      resize_window()
+    end
+  elseif result == "Bring To Front" then
+    CallPlugin("462b665ecb569efbf261422f","boostMe", win)
+  elseif result == "Send To Back" then
+    CallPlugin("462b665ecb569efbf261422f","dropMe", win)
+  elseif result == "Reset Defaults" then
+    commas_in_numbers   = false
+    font_name        = default_font_name
+    font_size        = default_font_size
+    height           = default_height
+    width            = default_width
+    stacked = 0
+    label_colors = {}
+    data_colors = copytable.deep(data_color_defaults)
+    SaveState()
+    OnPluginInstall()
+    BuildStatsPage()
+    if (page_built) then
+      resize_window()
+    end
+  end -- if
+end -- right_click_menu
+
+--=================================================================================
+-- Called when plugin receives telnet data - main entry point for actually running
+-- the plugin.
+--=================================================================================
+function OnPluginBroadcast (msg, id, name, text)
+  -- Look for MSDP handler.
+  if (id == 'b3aae34498d5bf19b5b2e2af') then
+    if (text == 'reload') then
+      -- invalidate current data
+      page_built = false
+      return
+    end
+
+    if (text == "INT" or text == "CON" or text == "STR" or text == "DEX" or text == "CHA" or text == "LCK" or text == "WIS" or
+      text == "INT_PERM" or text == "CON_PERM" or text == "STR_PERM" or text == "DEX_PERM" or text == "CHA_PERM" or text == "LCK_PERM" or text == "WIS_PERM" or
+      text == "HEALTH_MAX" or text == "MANA_MAX" or text == "HEALTH" or text == "MANA" or text == "ALIGNMENT" or text == "MONEY" or
+      text == "QP" or text == "RPP" or text == "SM" or text == "BP" or text == "TP" or text == "EARTH" or text == "NAMEK" or text == "BSTAR" or
+      text == "BASEPL" or text == "CURRENTPL" or text == "RAGE" or text == "EGO" or text == "HYDRATION" or text == "RACE" or text == "AC" or
+      text == "ENCUMBRANCE" or text == "REBIRTHS" or text == "BOOST")  then
+      page_built = true
+      RefreshPage()
+    end
+
+    elseif (id == "462b665ecb569efbf261422f" and msg==996 and text == "re-register z") then
+    CallPlugin("462b665ecb569efbf261422f", "registerMiniwindow", win)
+    end
+  end
+
+---------------------------------------------------------------------------------
+-- Called as the window is dragged around. This function and those below are
+-- only 'handlers' because they are set in WindowAddHotSpot
+---------------------------------------------------------------------------------
+function ResizeMoveCallback()
+   if GetPluginVariable("c293f9e7f04dde889f65cb90", "lock_down_miniwindows") == "1" then
+      return
+   end
+   posx, posy = WindowInfo (win, 17), WindowInfo (win, 18)
+   width = width + posx - startx
+   startx = posx
+   if max_width ~= 0 and width < math.min(MIN_SIZE, max_width + LEFT_MARGIN) then
+      width = math.min(MIN_SIZE, max_width + LEFT_MARGIN)
+      startx = windowinfo.window_left+width
+   elseif (windowinfo.window_left+width > GetInfo(281)) then
+      width = GetInfo(281)-windowinfo.window_left
+      startx = GetInfo(281)
+   end
+
+   height = height + posy - starty
+   starty = posy
+   if height < math.min(MIN_SIZE, max_height+TOP_MARGIN) then
+      height = math.min(MIN_SIZE, max_height+TOP_MARGIN)
+      starty = windowinfo.window_top+height
+   elseif (windowinfo.window_top+height > GetInfo(280)) then
+      height = GetInfo(280)-windowinfo.window_top
+      starty = GetInfo(280)
+   end
+   if (utils.timer() - lastRefresh > 0.0333) then
+      resize_window()
+      lastRefresh = utils.timer()
+   end
+end
+
+lastRefresh = 0
+
+---------------------------------------------------------------------------------
+-- Called after the resize widget is released.
+---------------------------------------------------------------------------------
+function ResizeReleaseCallback()
+   resize_window()
+end
+
+---------------------------------------------------------------------------------
+-- Called when mouse button is pressed on hotspot.
+---------------------------------------------------------------------------------
+function MouseDown(flags, hotspot_id)
+   if (hotspot_id == "resize") then
+      startx, starty = WindowInfo (win, 17), WindowInfo (win, 18)
+   end
+end
+
+---------------------------------------------------------------------------------
+-- Called when mouse moved away from hotspot. Doesn't really apply for draggables.
+---------------------------------------------------------------------------------
+function CancelMouseDown(flags, hotspot_id)
+end
+
+---------------------------------------------------------------------------------
+-- Called when mouse button released on hotspot.
+---------------------------------------------------------------------------------
+function MouseUp(flags, hotspot_id, win)
+   if bit.band (flags, miniwin.hotspot_got_rh_mouse) ~= 0 then
+      right_click_menu()
+   end
+   return true
+end
+
+function LeftClickOnly(flags, hotspot_id, win)
+   if bit.band (flags, miniwin.hotspot_got_rh_mouse) ~= 0 then
+      return true
+   end
+   return false
+end
+
+---------------------------------------------------------------------------------
+-- Called when plugin is saved - store our variables for next time.
+---------------------------------------------------------------------------------
+function OnPluginSaveState ()
+   -- save window current location for next time
+   movewindow.save_state (win)
+   SetVariable ("enabled", tostring (GetPluginInfo (GetPluginID (), 17)))
+   if WindowInfo(win, 3) and WindowInfo(win, 4) then
+      width = WindowInfo(win, 3)
+      height = WindowInfo(win, 4)
+   end
+   SetVariable ("width", width)
+   SetVariable ("height", height)
+   SetVariable ("font_name", font_name)
+   SetVariable ("font_size", font_size)
+   SetVariable ("stacked", stacked)
+   SetVariable ("commas_in_numbers", commas_in_numbers and 1 or 0)
+   SetVariable ("label_colors", serialize.save("label_colors"))
+   SetVariable ("data_colors", serialize.save("data_colors"))
+end
+
+function OnPluginClose ()
+   OnPluginDisable()
+   WindowDelete(win)
+end
+
+function OnPluginDisable ()
+   WindowShow( win, false )
+end
+
+function OnPluginEnable ()
+   WindowShow( win, true)
+end
+
+function OnPluginConnect()
+   --TelnetOptionOff(TELOPT_STATMON)
+end
+
+
+win = GetPluginID()
+--function OnPluginListChanged ()
+--   dofile "lua/DBR_requirements.lua"
+--end
+
+function OnPluginInstall()
+   font_id = GetPluginID()
+
+   local fonts = utils.getfontfamilies ()
+
+   if fonts ["Consolas"] then
+      default_font_size = 11
+      default_font_name = "Consolas"
+   elseif fonts["Courier New"] then
+      default_font_size = 9
+      default_font_name = "Courier New"
+   else
+      default_font_size = 9
+      default_font_name = "Lucida Console"
+   end
+
+   font_name = GetVariable("font_name") or default_font_name
+   font_size = tonumber(GetVariable("font_size")) or default_font_size
+
+   height = tonumber(GetVariable("height")) or default_height
+   orig_height = height
+   width = tonumber(GetVariable("width")) or default_width
+   stacked = tonumber(GetVariable("stacked")) or 0
+   commas_in_numbers = tonumber(GetVariable("commas_in_numbers")) == 1
+   windowinfo = movewindow.install(win, miniwin.pos_top_right, miniwin.create_absolute_location, false, nil, {mouseup=MouseUp, mousedown=LeftClickOnly, dragmove=LeftClickOnly, dragrelease=LeftClickOnly},{x=default_x, y=default_y})
+   WindowCreate(win, windowinfo.window_left, windowinfo.window_top, width, height, windowinfo.window_mode, windowinfo.window_flags, Theme.SECONDARY_BODY)
+   WindowFont(win, font_id, font_name, font_size, false, false, false, false, 0)
+
+   --- Grab font size metrics
+   line_height = WindowFontInfo (win, font_id, 1) -  WindowFontInfo (win, font_id, 4) + 2
+   max_height = (line_height*(((stacked == 1) and 15) or 38))+(TOP_MARGIN+1)
+   resize_window()
+
+   WindowShow(win, true)
+end
+
+function resize_window()
+   WindowResize(win, width, height, Theme.SECONDARY_BODY)
+   movewindow.add_drag_handler(win, 0, 0, 0, 0)
+
+   Print()
+end
+
+-------------------------------------------------------------------------------
+--- Calculate width of a line of styled text without drawing it.
+-------------------------------------------------------------------------------
+function styleWidth(styles)
+   local s = ""
+   for _,w in ipairs (styles) do
+      s = s .. w.text
+   end
+   return WindowTextWidth(win,font_id,s)
+end
+
+function getmemoryusage()
+  collectgarbage('collect')
+  return collectgarbage('count')
+end
+
+]]>
+</script>
+</muclient>
