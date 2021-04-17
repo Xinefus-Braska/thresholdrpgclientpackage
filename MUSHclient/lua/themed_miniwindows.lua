@@ -35,9 +35,6 @@ function ThemedWindowClass:delete(deferred)
    else
       WindowDelete(self.id)
    end
-   for k,_ in pairs(self) do
-      self[k] = nil
-   end
 end
 
 function ThemedWindowClass:reset()
@@ -117,10 +114,10 @@ function ThemedWindowClass.ResizeReleaseCallback(flags, hotspot_id)
 end
 
 function ThemedWindowClass:resize(width, height, still_dragging)
-   self.width = width or self.width
-   self.height = height or self.height
+   self.width = width
+   self.height = height
    CallPlugin("abc1a0944ae4af7586ce88dc", "pause")
-   WindowResize(self.id, self.width, self.height, Theme.PRIMARY_BODY)
+   WindowResize(self.id, width, height, Theme.PRIMARY_BODY)
    _, self.bodyleft, self.bodytop, self.bodyright, self.bodybottom = Theme.BodyMetrics(self.id, self.title_font, WindowFontInfo(self.id, self.title_font, 1), #self.title)
    if still_dragging then
       if self.do_while_resizing then
@@ -149,13 +146,15 @@ function ThemedWindowClass:dress_window()
    boxwidth = WindowTextWidth(self.id, self.title_font, "!") + (3*Theme.TITLE_PADDING) + 5
    self.bodyleft, self.bodytop, self.bodyright, self.bodybottom = Theme.DressWindow(self.id, self.title_font, self.title, self.title_alignment, self.is_temporary and boxwidth or 0)
    
-   if WindowMoveHotspot(self.id, "zzzzzzzzzz"..self.id.."_body", self.bodyleft, self.bodytop, self.bodyright, self.bodybottom) ~= 0 then
+   if not WindowHotspotInfo(self.id, "zzzzzzzzzz"..self.id.."_body", 1) then
       local cursor = 0
       if (self.title == nil) or (#(self.title) == 0) then
          cursor = 1
       end
       self.hotspot_map["zzzzzzzzzz"..self.id.."_body"] = self
       WindowAddHotspot(self.id, "zzzzzzzzzz"..self.id.."_body", self.bodyleft, self.bodytop, self.bodyright, self.bodybottom, nil, nil, nil, nil, "ThemedWindowClass.RightClickMenuCallback", "", cursor, 0)
+   else
+      WindowMoveHotspot(self.id, "zzzzzzzzzz"..self.id.."_body", self.bodyleft, self.bodytop, self.bodyright, self.bodybottom)
    end
 
    if self.is_temporary then
@@ -249,7 +248,7 @@ end
 
 function ThemedBasicWindow(
    id, default_left_position, default_top_position, default_width, default_height, title, title_alignment, is_temporary, 
-   resizer_type, do_while_resizing, do_after_resizing, do_on_delete, title_font_name, title_font_size, defer_showing
+   resizer_type, do_while_resizing, do_after_resizing, do_on_delete, title_font_name, title_font_size
 )
    assert(id, "ThemedBasicWindow Error: argument 1, id is required")
    assert(default_left_position, "ThemedBasicWindow Error: argument 2, default_left_position is required")
@@ -265,7 +264,7 @@ function ThemedBasicWindow(
       id = id,
       title_font_name = title_font_name or "Dina",
       title_font_size = title_font_size or 10,
-      title = title and ToMultilineStyles(title, Theme.THREE_D_SURFACE_DETAIL, nil, true, true) or {},
+      title = Theme.ToMultilineStyles(title),
       min_width = 100,
       min_height = 50,
       default_left_position = default_left_position,
@@ -289,10 +288,7 @@ function ThemedBasicWindow(
    WindowCreate(self.id, self.windowinfo.window_left, self.windowinfo.window_top, self.width, self.height, self.windowinfo.window_mode, self.windowinfo.window_flags, Theme.PRIMARY_BODY)
    WindowFont(self.id, self.title_font, self.title_font_name, self.title_font_size, false, false, false, false, 0)
    self:dress_window()
-
-   if not defer_showing then
-      self:show()
-   end
+   WindowShow(self.id, true)
 
    return self
 end
@@ -320,11 +316,7 @@ end
 function ThemedTextWindowClass:__set_scrollbar()
    if self.scrollbar then
       local tr_right = self.bodyright - Theme.RESIZER_SIZE + 1
-      local bottom = self.bodybottom
-      if self.resizer_type then
-         bottom = bottom - Theme.RESIZER_SIZE
-      end
-      self.scrollbar:setRect(tr_right, self.bodytop, self.bodyright, bottom)
+      self.scrollbar:setRect(tr_right, self.bodytop, self.bodyright, self.bodybottom-Theme.RESIZER_SIZE)
       self.scrollbar:draw()
    end
 end
@@ -347,69 +339,13 @@ function ThemedTextWindowClass:OnDelete()
    end
 end
 
-function ThemedTextWindowClass:show()
-   self:draw()
-   ThemedWindowClass.show(self)
-end
-
 function ThemedTextWindowClass:add_text(styles_or_color_coded_text, draw_after)
-   draw_after = ((draw_after == nil) or (draw_after == true)) and WindowInfo(self.id, 5)
+   draw_after = (draw_after == nil) or (draw_after == true)
    self.textrect:addText(styles_or_color_coded_text)
    if draw_after then
       self:draw()
    end
 end
-
-function ThemedTextWindowClass:get_styles()
-   return self.textrect:getStyles()
-end
-
-function ThemedTextWindowClass:get_text()
-   return self.textrect:getText()
-end
-
-function ThemedTextWindowClass:text_width(styles_or_color_coded_text)
-   return self.textrect:textWidth(styles_or_color_coded_text)
-end
-
-function ThemedTextWindowClass:set_scroll(pos)
-   self.textrect:setScroll(pos)
-   if self.scrollbar then
-      self.scrollbar:setScroll(pos)
-   end
-end
-
-function ThemedTextWindowClass:fit_size(content_width, num_content_lines, max_width, max_height)
-   local height = nil
-   local width = nil
-   if num_content_lines then
-      height = (self.textrect.line_height * num_content_lines) + (self.textrect.padding*3) + self.bodytop
-   end
-   if content_width then
-      width = content_width
-      if self.scrollbar then
-         width = width + Theme.RESIZER_SIZE
-      end
-      width = width + (self.textrect.padding * 2) + (self.bodyleft * 2) + 1
-   end
-   if width and max_width then
-      width = math.min(max_width, width)
-   end
-   if height and max_height then
-      height = math.min(max_height, height)
-   end
-   self:resize(width, height)
-end
-
-function ThemedTextWindowClass:fit_contents(max_width, max_height)
-   local width = 0
-   for _, styles in ipairs(self:get_styles()) do
-      width = math.max(width, self:text_width(styles))
-   end
-   self:fit_size(width, nil, max_width, nil)
-   self:fit_size(nil, self.textrect.num_wrapped_lines, nil, max_height)
-end
-
 
 function ThemedTextWindowClass:__draw_framing()
    if self.scrollbar then
@@ -428,18 +364,18 @@ function ThemedTextWindowClass:draw()
    self:__draw_framing()
 end
 
--- deprecated. use add_text instead
+-- deprecated
 function ThemedTextWindowClass:add_color_line(color_text)
    self:add_text(color_text)
 end
 
--- deprecated. use add_text instead
+-- deprecated
 function ThemedTextWindowClass:add_styles(styles)
    self:add_text(styles)
 end
 
 function ThemedTextWindowClass:clear(draw_after)
-   draw_after = ((draw_after == nil) or (draw_after == true)) and WindowInfo(self.id, 5)
+   draw_after = (draw_after == nil) or (draw_after == true)
    self.textrect:clear(draw_after)
    if draw_after then
       self:__draw_framing()
@@ -450,8 +386,7 @@ function ThemedTextWindow(
    id, default_left_position, default_top_position, default_width, default_height, title, title_alignment, 
    is_temporary, resizeable, text_scrollable, text_selectable, text_copyable, url_hyperlinks,
    autowrap,
-   title_font_name, title_font_size, text_font_name, text_font_size, text_max_lines, text_padding,
-   defer_showing
+   title_font_name, title_font_size, text_font_name, text_font_size, text_max_lines, text_padding
 )
    assert(id, "ThemedTextWindow Error: argument 1, id is required")
    assert(default_left_position, "ThemedTextWindow Error: argument 2, default_left_position is required")
@@ -475,7 +410,7 @@ function ThemedTextWindow(
    local self = ThemedBasicWindow(
       id, default_left_position, default_top_position, default_width, default_height, title, title_alignment, is_temporary, 
       resizer_type, ThemedTextWindowClass.do_while_resizing, ThemedTextWindowClass.do_after_resizing, 
-      ThemedTextWindowClass.OnDelete, title_font_name, title_font_size, defer_showing
+      ThemedTextWindowClass.OnDelete, title_font_name, title_font_size
    )
    setmetatable(self, ThemedTextWindowClass)
 
@@ -499,18 +434,17 @@ function ThemedTextWindow(
       self.textrect:addUpdateCallback(self.scrollbar, self.scrollbar.setScroll)
       self.scrollbar:addUpdateCallback(self.textrect, self.textrect.setScroll)
    end
-   self:clear(not defer_showing)
+   self:clear(true)
    return self
 end
 
 
 
--- Global function overrides to wrap various functions and callbacks even if
--- they haven't been created yet
+-- global function overrides
 
 ThemedWindowClass.proxyStore = {}
 
-local function proxy_G(proxy_function_map)
+function proxy_G(proxy_function_map)
    local proxyMetatable = {}
    function proxyMetatable.__index(t, k)
       return proxy_function_map[k] or rawget(world, k)
@@ -529,67 +463,24 @@ local function proxy_G(proxy_function_map)
    setmetatable(_G, proxyMetatable)   
 end
 
-local function __delete_all()
-   if not Theme.is_reloading then
-      for _, win in pairs(ThemedWindowClass.window_map) do
-         win:delete()
-      end
-   end
-end
-
-local function __do_wrapped_func(name, ...)
-   local func = ThemedWindowClass.proxyStore[name] or rawget(_G, name)
-   if func then
-      return func(...)
-   end
-end
-
--- Wrap WindowCreate to always register with the z-order manager
-local function NewWindowCreate(w, ...)
-   local ret = __do_wrapped_func("WindowCreate", w, ...)
+-- wrap world.WindowCreate
+function NewWindowCreate(w, ...)
+   ret = world.WindowCreate(w, ...)
    CallPlugin("462b665ecb569efbf261422f", "registerMiniwindow", w)
    return ret
 end
 
-
--- Wrap OnPluginBroadcast to enable re-registering with the z-order manager
-local function NewOnPluginBroadcast(msg, id, name, text)
+-- wrap OnPluginBroadcast even if it hasn't been created yet
+function NewOnPluginBroadcast(msg, id, name, text)
    if (id == "462b665ecb569efbf261422f" and msg==996 and text == "re-register z") then
       for win_id, _ in pairs(ThemedWindowClass.window_map) do
          CallPlugin("462b665ecb569efbf261422f", "registerMiniwindow", win_id)
       end
    end
-   __do_wrapped_func("OnPluginBroadcast", msg, id, name, text)
-end
-
--- Wrap OnPluginClose to delete any windows that are left open.
-local function NewOnPluginClose()
-   __do_wrapped_func("OnPluginClose")
-   __delete_all()
-end
-
--- Wrap OnPluginDisable to delete any windows that are left open.
-local function NewOnPluginDisable()
-   __do_wrapped_func("OnPluginDisable")
-   __delete_all()
-end
-
-local function NewOnPluginThemeChange()
-   local func = ThemedWindowClass.proxyStore["OnPluginThemeChange"] or rawget(_G, "OnPluginThemeChange")
+   local func = ThemedWindowClass.proxyStore["OnPluginBroadcast"] or rawget(_G, "OnPluginBroadcast")
    if func then
-      _G["package"]["loaded"]["mw_theme_base"] = nil
-      require "mw_theme_base"
-      func()
-      return true
-   else
-      return false
+      func(msg, id, name, text)
    end
 end
 
-proxy_G({
-   WindowCreate=NewWindowCreate,
-   OnPluginBroadcast=NewOnPluginBroadcast,
-   OnPluginClose=NewOnPluginClose,
-   OnPluginDisable=NewOnPluginDisable,
-   OnPluginThemeChange=NewOnPluginThemeChange
-})
+proxy_G({OnPluginBroadcast=NewOnPluginBroadcast, WindowCreate=NewWindowCreate})

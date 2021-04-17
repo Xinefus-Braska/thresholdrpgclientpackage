@@ -1,10 +1,21 @@
 -- Bits of this code and ideas were borrowed and remixed from the MUSHclient community. https://www.mushclient.com/forum/?id=9385 and others.
 
+--[[
+
+Thanks to Fiendish of Aardwolf who provided the base and starting point for all of this.
+Original files sourced from: https://github.com/fiendish/aardwolfclientpackage
+My process: http://www.gammon.com.au/forum/?id=14718
+Thank you!!
+
+My Github for DBNU: https://github.com/DBNU-Braska/DBNU
+
+--]]
+
+
 require "wait"
 require "copytable"
 require "colors"
-require "mw_theme_base"
-dofile (GetInfo(60) .. "aardwolf_colors.lua")
+require "DBR_colors"
 
 local function getHighlightColor(bg)
    local h, s, l = colors.rgb_string_to_hsl(string.format('#%06x', bg))
@@ -42,31 +53,16 @@ TextRect_defaults = {
 }
 TextRect_mt = { __index = TextRect }
 
-function TextRect.new(
-   window, name, left, top, right, bottom, max_lines, scrollable, background_color, 
-   padding, font_name, font_size, external_scroll_handler, call_on_select, 
-   unselectable, uncopyable, no_url_hyperlinks, no_autowrap,
-   menu_generator_function
-)
+function TextRect.new(window, name, left, top, right, bottom, max_lines, scrollable, background_color, padding, font_name, font_size, external_scroll_handler, call_on_select)
    new_tr = setmetatable(copytable.deep(TextRect_defaults), TextRect_mt)
    new_tr.id = "TextRect_"..window.."_"..name
    new_tr.window = window
    new_tr.name = name
-   new_tr:configure(
-      left, top, right, bottom, max_lines, scrollable, background_color, 
-      padding, font_name, font_size, external_scroll_handler, call_on_select, 
-      unselectable, uncopyable, no_url_hyperlinks, no_autowrap, 
-      menu_generator_function)
+   new_tr:configure(left, top, right, bottom, max_lines, scrollable, background_color, padding, font_name, font_size, external_scroll_handler, call_on_select)
    return new_tr
 end
 
-function TextRect:configure(
-   left, top, right, bottom, max_lines, scrollable, background_color,
-   padding, font_name, font_size, external_scroll_handler, call_on_select,
-   unselectable, uncopyable, no_url_hyperlinks, no_autowrap,
-   menu_generator_function
-)
-   self:setExternalMenuFunction(menu_generator_function)
+function TextRect:configure(left, top, right, bottom, max_lines, scrollable, background_color, padding, font_name, font_size, external_scroll_handler, call_on_select)
    self.scrollable = scrollable
    self.external_scroll_handler = external_scroll_handler
    self.call_on_select = call_on_select
@@ -74,30 +70,25 @@ function TextRect:configure(
    self.max_lines = max_lines or self.max_lines
    self.font_name = font_name or self.font_name
    self.font_size = font_size or self.font_size
-   self.no_autowrap = no_autowrap
-   self.unselectable = unselectable
-   self.uncopyable = uncopyable
-   self.no_url_hyperlinks = no_url_hyperlinks
    if background_color ~= self.background_color then
       self.background_color = background_color or self.background_color
       self.highlight_color = getHighlightColor(self.background_color)
    end
-   self:loadFont(self.font_name, self.font_size)
    self:setRect(left, top, right, bottom)
+   self:loadFont(self.font_name, self.font_size)
 end
 
 function TextRect:loadFont(name, size)
    if (not self.font) or (name ~= self.font_name) or (size ~= self.font_size) then
       self.font = self.id.."_font"
       self.font_bold = self.id.."_font_bold"
-      self.font_name = name or self.font_name
-      self.font_size = size or self.font_size
+      self.font_name = name
+      self.font_size = size
 
       WindowFont(self.window, self.font, self.font_name, self.font_size, false, false, false, false, 0)
       WindowFont(self.window, self.font_bold, self.font_name, self.font_size, true, false, false, false, 0)
+
       self.line_height = WindowFontInfo(self.window, self.font, 1)
-   end
-   if self.padded_height then
       self.rect_lines = math.floor(self.padded_height / self.line_height)
    end
 end
@@ -117,40 +108,26 @@ function TextRect:findURLs(text)
    return URLs
 end -- function findURL
 
-function TextRect:textWidth(styles_or_color_coded_text)
-   local width = 0
-   for _, styles in ipairs(ToMultilineStyles(styles_or_color_coded_text, nil, nil, true)) do
-      width = math.max(width, self:styles_width(styles))
-   end
-   return width
-end
-
-function TextRect:addText(message)
-   for _, message in ipairs(ToMultilineStyles(message, Theme.BODY_TEXT, nil, true)) do
-      -- extract URLs so we can add our movespots later
-      local urls = self:findURLs(strip_colours_from_styles(message))
-
-      -- pop the oldest line from our buffer if we're at capacity
-      if self.num_raw_lines >= self.max_lines then
-         table.remove(self.raw_lines, 1)
-         self.num_raw_lines = self.num_raw_lines - 1
-      end
-
-      -- add to raw lines table
-      table.insert(self.raw_lines, {[1]=message, [2]=urls})
-      self.num_raw_lines = self.num_raw_lines + 1
-
-      -- add to wrapped lines table for display
-      self:wrapLine(message, urls, self.num_raw_lines)
-   end
-end
-
 function TextRect:addColorLine(line)
-   self:addText(line)
+   self:addStyles(ColoursToStyles(line))
 end
 
 function TextRect:addStyles(styles)
-   self:addText(styles)
+   -- extract URLs so we can add our movespots later
+   local urls = self:findURLs(strip_colours_from_styles(styles))
+
+   -- pop the oldest line from our buffer if we're at capacity
+   if self.num_raw_lines >= self.max_lines then
+      table.remove(self.raw_lines, 1)
+      self.num_raw_lines = self.num_raw_lines - 1
+   end
+
+   -- add to raw lines table
+   table.insert(self.raw_lines, {[1]=styles, [2]=urls})
+   self.num_raw_lines = self.num_raw_lines + 1
+
+   -- add to wrapped lines table for display
+   self:wrapLine(styles, urls, self.num_raw_lines)
 end
 
 function TextRect:doUpdateCallbacks()
@@ -160,34 +137,6 @@ function TextRect:doUpdateCallbacks()
          local func = cb[2]
          func(obj, self.display_start_line, self.rect_lines, self.num_wrapped_lines)
       end
-   end
-end
-
-function TextRect:cap_messages()
-   if self.num_wrapped_lines >= self.max_lines then
-      -- if the history buffer is full then remove the oldest line
-      table.remove(self.wrapped_lines, 1)
-      self.num_wrapped_lines = self.num_wrapped_lines - 1
-      self.start_line = math.max(1, self.start_line - 1)
-      self.end_line = math.max(1, self.end_line - 1)
-      self.display_start_line = math.max(1, self.display_start_line - 1)
-      self.display_end_line = math.max(1, self.display_end_line - 1)
-      if self.copy_start_line then
-         self.copy_start_line = math.max(0, self.copy_start_line - 1)
-         self.copy_end_line = math.max(self.copy_start_line, self.copy_end_line - 1)
-      end
-   end -- buffer full
-end
-
-function TextRect:lockstep()
-   -- scroll down if viewing the bottom
-   if self.end_line == self.num_wrapped_lines then
-      if self.end_line >= self.rect_lines then
-         self.start_line = self.start_line + 1
-         self.display_start_line = self.start_line
-      end
-      self.end_line = self.end_line + 1
-      self.display_end_line = self.end_line
    end
 end
 
@@ -203,30 +152,52 @@ function TextRect:wrapLine(stylerun, rawURLs, raw_index)
    local insert = table.insert
    local sub = string.sub
    local find = string.find
-   local show_bold = (GetOption("show_bold")==1)
 
    -- Keep pulling out styles and trying to fit them on the current line
    while #styles > 0 do
       -- break off the next style
       local style = remove(styles, 1)
 
+      -- make this handle forced newlines like in the flickoff social
+      -- by splitting off and sticking the next part back into the
+      -- styles list for the next pass
+      foundbreak = false
+      newline = find(style.text, "\n")
+      if newline then
+         insert(styles, 1, {text = sub(style.text, newline+1),
+               length = style.length-newline+1,
+               textcolour = style.textcolour,
+               backcolour = style.backcolour}
+         )
+         -- we're leaving in the newline characters here because we need to be
+         -- able to copy them. I'll clean up the buggy visual later when
+         -- actually displaying the lines.
+         style.length = newline
+         style.text = sub(style.text, 1, newline)
+         foundbreak = true
+      end
+
       local font = self.font
-      if style.bold and show_bold then
+      if style.bold then
          font = self.font_bold
       end
-      local t_width = WindowTextWidth(self.window, font, style.text)
+      local whole_width = WindowTextWidth(self.window, font, style.text)
+      local t_width = whole_width
 
       -- if it fits, copy whole style in
-      -- also if literally no room for anything, just wedge the whole style in because that's silly
-      if self.no_autowrap or (t_width <= available) or (WindowTextWidth(self.window, font, sub(style.text, 1, 1)) > available) then
+      if t_width <= available then
          if style.length > 0 then
             insert(line_styles, style)
          end
          length = length + style.length
          available = available - t_width
+         if foundbreak then
+            available = 0
+         end
       else -- otherwise, have to split style
          -- look for spaces to break at
          local col = 2
+         local fits = true
          local fit_col = nil
          while col < style.length do
             if sub(style.text, col, col) == " " then
@@ -274,8 +245,20 @@ function TextRect:wrapLine(stylerun, rawURLs, raw_index)
       end -- if could/not fit whole thing in
 
       -- out of styles or out of room? add a line for what we have so far
-      if ((available <= 0) and not self.no_autowrap) or (#styles == 0) then
-         self:cap_messages()
+      if #styles == 0 or available <= 0 then
+         if self.num_wrapped_lines >= self.max_lines then
+            -- if the history buffer is full then remove the oldest line
+            remove(self.wrapped_lines, 1)
+            self.num_wrapped_lines = self.num_wrapped_lines - 1
+            self.start_line = math.max(1, self.start_line - 1)
+            self.end_line = math.max(1, self.end_line - 1)
+            self.display_start_line = math.max(1, self.display_start_line - 1)
+            self.display_end_line = math.max(1, self.display_end_line - 1)
+            if self.copy_start_line then
+               self.copy_start_line = math.max(0, self.copy_start_line - 1)
+               self.copy_end_line = math.max(self.copy_start_line, self.copy_end_line - 1)
+            end
+         end -- buffer full
 
          local line_urls = {}
          while urls[1] and urls[1].stop <= length do
@@ -299,7 +282,15 @@ function TextRect:wrapLine(stylerun, rawURLs, raw_index)
             end
          end
 
-         self:lockstep()
+         -- scroll down if viewing the bottom
+         if self.end_line == self.num_wrapped_lines then
+            if self.end_line >= self.rect_lines then
+               self.start_line = self.start_line + 1
+               self.display_start_line = self.start_line
+            end
+            self.end_line = self.end_line + 1
+            self.display_end_line = self.end_line
+         end
 
          -- add new wrapped line component
          self.num_wrapped_lines = self.num_wrapped_lines + 1
@@ -315,14 +306,11 @@ function TextRect:wrapLine(stylerun, rawURLs, raw_index)
    end -- while we still have styles left
 end
 
-function TextRect:clear(draw_after)
-   local draw_after = (draw_after == nil) or (draw_after == true)
+function TextRect:clear()
    self.raw_lines = {}
    self.num_raw_lines = 0
    self:reWrapLines()
-   if draw_after then
-      self:draw()
-   end
+   self:draw()
 end
 
 function TextRect:debug(when)
@@ -362,7 +350,7 @@ end
 
 function TextRect:drawLine(line, styles, backfill_start, backfill_end)
    local left = self.padded_left
-   local top = self.padded_top + (line * self.line_height) + 1
+   local top = self.padded_top + (line * self.line_height)
    if (backfill_start ~= nil and backfill_end ~= nil) then
       WindowRectOp(self.window, 2, backfill_start, top, backfill_end-1, top + self.line_height, self.highlight_color)
    end -- backfill
@@ -375,16 +363,13 @@ function TextRect:drawLine(line, styles, backfill_start, backfill_end)
          if show_bold and v.bold then
             font = self.font_bold
          end
+         -- now clean up dangling newlines that cause block characters to show
+         if string.sub(v.text, -1) == "\n" then
+            t = string.sub(v.text, 1, -2)
+         end
          left = left + WindowText(self.window, font, t, left, top, self.padded_right, self.padded_bottom, v.textcolour, utf8 and utils.utf8valid(t))
       end
    end
-end
-
-function TextRect:styles_width(styles, show_bold)
-   if show_bold == nil then
-      show_bold = (GetOption("show_bold")== 1)
-   end
-   return StylesWidth(self.window, self.font, self.font_bold, styles, show_bold)
 end
 
 function TextRect:draw(cleanup_first, inside_callback)
@@ -407,13 +392,39 @@ function TextRect:draw(cleanup_first, inside_callback)
          ax = nil
          zx = nil
          line_styles = self.wrapped_lines[count][1]
-         if (self.keepscrolling == "") and not self.no_url_hyperlinks then
+         if self.keepscrolling == "" then
             -- create clickable links for urls
             for _,url_part in ipairs(self.wrapped_lines[count][3]) do
                -- bold widths in urls. replacement for: local left = self.padded_left + WindowTextWidth(self.window, self.font, string.sub(line_no_colors, 1, url_part.start-1))
-               local left = self.padded_left + self:styles_width(TruncateStyles(line_styles, 0, url_part.start-1), show_bold)
+               local left = self.padded_left
+               local left_chars = 0
+               for _,v in ipairs(line_styles) do
+                  local font = self.font
+                  if show_bold and v.bold then
+                     font = self.font_bold
+                  end
+                  if left_chars + v.length > url_part.start then
+                     left = left + WindowTextWidth(self.window, font, string.sub(v.text, 1, url_part.start-left_chars-1))
+                     break
+                  end
+                  left = left + WindowTextWidth(self.window, font, v.text)
+                  left_chars = left_chars + v.length
+               end
                -- bold widths in urls. replacement for: local right = left + WindowTextWidth(self.window, self.font, string.sub(line_no_colors, url_part.start-1, url_part.stop-1))
-               local right = left + self:styles_width(TruncateStyles(line_styles, url_part.start, url_part.stop), show_bold)
+               local right = self.padded_left
+               local right_chars = 0
+               for _,v in ipairs(line_styles) do
+                  local font = self.font
+                  if show_bold and v.bold then
+                     font = self.font_bold
+                  end
+                  if right_chars + v.length > url_part.stop then
+                     right = right + WindowTextWidth(self.window, font, string.sub(v.text, 1, url_part.stop-right_chars))
+                     break
+                  end
+                  right = right + WindowTextWidth(self.window, font, v.text)
+                  right_chars = right_chars + v.length
+               end
                local top = self.padded_top + ((count - self.display_start_line) * self.line_height)-1
                local bottom = top + self.line_height
                local link_id = self:generateHotspotID(table.concat({url_part.text, " ", count, " ", url_part.start, " ", url_part.stop}))
@@ -430,7 +441,14 @@ function TextRect:draw(cleanup_first, inside_callback)
             end
          end
 
-         local line_length = self.padded_left + self:styles_width(line_styles, show_bold)
+         local line_length = self.padded_left
+         for _,v in ipairs(line_styles) do
+            local font = self.font
+            if show_bold and v.bold then
+               font = self.font_bold
+            end
+            line_length = line_length + WindowTextWidth(self.window, font, v.text)
+         end
 
          -- create highlighting parameters when text is selected
          if self.copy_start_line ~= nil and self.copy_end_line ~= nil and count >= self.copy_start_line and count <= self.copy_end_line then
@@ -462,21 +480,8 @@ function TextRect:draw(cleanup_first, inside_callback)
    if not inside_callback then
       self:doUpdateCallbacks()
    end
-   
-   self:underline_hyperlinks()
 
-   self:draw_scrollback_marker()
-end
-
-function TextRect:draw_scrollback_marker()
-   if self.display_end_line < self.num_wrapped_lines then
-      local text = "Scroll down for more"
-      local width = self:textWidth(text)
-      local left = self.right - width - 15
-      local top = self.bottom - WindowFontInfo(self.window, self.font, 1) + 1
-      WindowCircleOp(self.window, 2, left, top, self.right-5, self.bottom+2, Theme.THREE_D_SOFTSHADOW, 0, 1, Theme.THREE_D_GRADIENT_FIRST, 0)
-      WindowText(self.window, self.font, text, left+5, top, self.right-3, self.bottom, Theme.THREE_D_SURFACE_DETAIL, false)
-   end
+   CallPlugin("abc1a0944ae4af7586ce88dc", "BufferedRepaint")
 end
 
 function TextRect:addUpdateCallback(object, callback)
@@ -501,14 +506,13 @@ function TextRect:setRect(left, top, right, bottom)
    self.padded_top = self.top + self.padding
    self.padded_right = self.right - self.padding
    self.padded_bottom = self.bottom - self.padding
-   self.padded_width = self.padded_right - self.padded_left
-   self.padded_height = self.padded_bottom - self.padded_top
+   self.padded_width = self.width - (2*self.padding)
+   self.padded_height = self.height - (2*self.padding)
    if self.area_hotspot then
       WindowMoveHotspot(self.window, self.area_hotspot, self.left, self.top, self.right, self.bottom)
    end
    if self.line_height then
-      -- add a third of a line before subdividing to make resizing a bit more comfortable
-      self.rect_lines = math.floor((self.padded_height+(self.line_height/3)) / self.line_height)
+      self.rect_lines = math.floor(self.padded_height / self.line_height)
    end
 end
 
@@ -548,7 +552,6 @@ function TextRect:scroll(dragging)
          else
             self:draw(false)
          end
-         CallPlugin("abc1a0944ae4af7586ce88dc", "BufferedRepaint")
          wait.time(0.01)
       end
    end)
@@ -557,18 +560,12 @@ end
 function TextRect:initArea()
    --highlight, right click, scrolling
    self.area_hotspot = self:generateHotspotID("textarea")
-   if (not self.unselectable) or self.scrollable or self.external_scroll_handler or (not self.no_url_hyperlinks) then
-      if self.unselectable then
-         WindowAddHotspot(self.window, self.area_hotspot, self.left, self.top, self.right, self.top + self.height, "", "", "", "", "TextRect.mouseUp", "", nil, 0)
-      else
-         WindowAddHotspot(self.window, self.area_hotspot, self.left, self.top, self.right, self.top + self.height, "", "", "TextRect.mouseDown", "TextRect.cancelMouseDown", "TextRect.mouseUp", "", miniwin.cursor_ibeam, 0)
-         WindowDragHandler(self.window, self.area_hotspot, "TextRect.dragMove", "TextRect.dragRelease", 0x10)
-      end
-      if self.scrollable then
-         WindowScrollwheelHandler(self.window, self.area_hotspot, "TextRect.wheelMove")
-      elseif self.external_scroll_handler then
-         WindowScrollwheelHandler(self.window, self.area_hotspot, self.external_scroll_handler)
-      end
+   WindowAddHotspot(self.window, self.area_hotspot, self.left, self.top, self.right, self.top + self.height, "", "", "TextRect.mouseDown", "TextRect.cancelMouseDown", "TextRect.mouseUp", "", miniwin.cursor_ibeam, 0)
+   WindowDragHandler(self.window, self.area_hotspot, "TextRect.dragMove", "TextRect.dragRelease", 0x10)
+   if self.scrollable then
+      WindowScrollwheelHandler(self.window, self.area_hotspot, "TextRect.wheelMove")
+   elseif self.external_scroll_handler then
+      WindowScrollwheelHandler(self.window, self.area_hotspot, self.external_scroll_handler)
    end
    self.hyperlinks = {}
 end
@@ -593,6 +590,15 @@ function TextRect:unInit()
    self:_deleteHyperlinks()
 end
 
+function TextRect:reset_copy()
+   self.copy_start_line = nil
+   self.copy_end_line = nil
+   self.start_copying_x = nil
+   self.end_copying_x = nil
+   self.start_copying_pos = nil
+   self.end_copying_pos = nil
+end
+
 function TextRect.mouseDown(flags, hotspot_id)
    if bit.band(flags, miniwin.hotspot_got_lh_mouse) == 0 then
       return  -- ignore non-left mouse button
@@ -601,12 +607,11 @@ function TextRect.mouseDown(flags, hotspot_id)
    tr.temp_start_copying_x = WindowInfo(tr.window, 14)
    tr.copy_start_windowline = math.floor((WindowInfo(tr.window, 15) - tr.top) / tr.line_height)
    tr.temp_start_line = tr.copy_start_windowline + tr.start_line
-   tr:set_selection(nil, nil, nil, nil)
+   tr:reset_copy()
    tr:draw(false)
    if tr.call_on_select then
       tr.call_on_select(tr.copy_start_line, tr.copy_end_line, tr.start_copying_pos, tr.end_copying_pos, tr.start_copying_x, tr.end_copying_x)
    end
-   CallPlugin("abc1a0944ae4af7586ce88dc", "BufferedRepaint")
 end
 
 
@@ -619,7 +624,7 @@ function TextRect.dragMove(flags, hotspot_id)
    if tr.num_wrapped_lines == 0 then
       return
    end
-   
+
    tr:updateSelect()
 
    if tr.scrollable then
@@ -640,7 +645,6 @@ function TextRect.dragMove(flags, hotspot_id)
          tr.keepscrolling = ""
       end
    end
-   CallPlugin("abc1a0944ae4af7586ce88dc", "BufferedRepaint")
 end
 
 function TextRect.dragRelease(flags, hotspot_id)
@@ -648,17 +652,16 @@ function TextRect.dragRelease(flags, hotspot_id)
    if tr.call_on_select then
       tr.call_on_select(tr.copy_start_line, tr.copy_end_line, tr.start_copying_pos, tr.end_copying_pos, tr.start_copying_x, tr.end_copying_x)
    end
-   CallPlugin("abc1a0944ae4af7586ce88dc", "BufferedRepaint")
 end
 
 function TextRect.mouseUp(flags, hotspot_id)
    local tr = TextRect.hotspot_map[hotspot_id]
    tr.keepscrolling = ""
-   tr:draw()
    if bit.band(flags, miniwin.hotspot_got_rh_mouse) ~= 0 then
       tr:rightClickMenu(hotspot_id)
+   else
+      tr:draw()
    end
-   CallPlugin("abc1a0944ae4af7586ce88dc", "BufferedRepaint")
    return true
 end
 
@@ -666,52 +669,16 @@ function TextRect.cancelMouseDown(flags, hotspot_id)
    local tr = TextRect.hotspot_map[hotspot_id]
    tr.keepscrolling = ""
    tr:draw()
-   CallPlugin("abc1a0944ae4af7586ce88dc", "BufferedRepaint")
-end
-
-function TextRect:set_selection(start_line, end_line, start_pos, end_pos)
-   if (
-      start_line and end_line and start_pos and end_pos and
-      ((start_line >= 1) or (end_line >= 1)) and
-      ((start_line <= self.num_wrapped_lines) or (end_line <= self.num_wrapped_lines))
-   ) then
-      if start_line < 1 and end_line >= 1 then
-         start_line = 1
-         start_pos = 0
-      end
-      if end_line > self.num_wrapped_lines and start_line <= self.num_wrapped_lines then
-         end_line = self.num_wrapped_lines
-         end_pos = #strip_colours_from_styles(self.wrapped_lines[end_line][1])
-      end
-      self.start_copying_pos = start_pos
-      self.end_copying_pos = end_pos
-      self.copy_end_line = end_line
-      self.copy_start_line = start_line
-      self.start_copying_x = self.padded_left + self:styles_width(
-         TruncateStyles(self.wrapped_lines[start_line][1], 0, start_pos)
-      )
-      self.end_copying_x = self.padded_left + self:styles_width(
-         TruncateStyles(self.wrapped_lines[end_line][1], 0, end_pos)
-      )
-   else
-      self.start_copying_pos = nil
-      self.end_copying_pos = nil
-      self.copy_end_line = nil
-      self.copy_start_line = nil
-      self.start_copying_x = nil
-      self.end_copying_x = nil      
-   end
-   -- do not call self.call_on_select here
 end
 
 function TextRect:updateSelect()
    self.copy_start_line = self.temp_start_line
    self.start_copying_x = self.temp_start_copying_x
 
-   self.end_copying_y = WindowInfo(self.window, 18) - WindowInfo(self.window, 11)
+   self.end_copying_y = WindowInfo(self.window, 18) - WindowInfo(self.window, 2)
    self.copy_end_windowline = math.floor((self.end_copying_y - self.top) / self.line_height)
    self.copy_end_line = self.copy_end_windowline + self.start_line
-   self.end_copying_x = math.max(self.left, math.min(self.right, WindowInfo(self.window, 17) - WindowInfo(self.window, 10)))
+   self.end_copying_x = math.max(self.left, math.min(self.right, WindowInfo(self.window, 17) - WindowInfo(self.window, 1)))
 
    -- the user is selecting backwards, so reverse the start/end orders
    if self.copy_end_line < self.copy_start_line then
@@ -730,7 +697,7 @@ function TextRect:updateSelect()
    end
 
    self.copy_start_line = math.max(1, math.min(self.num_wrapped_lines, self.copy_start_line))
-   self.copy_end_line = math.max(1, math.min(self.num_wrapped_lines, self.copy_end_line)) 
+   self.copy_end_line = math.max(1, math.min(self.num_wrapped_lines, self.copy_end_line))
 
    local show_bold = (GetOption("show_bold")== 1)
 
@@ -784,7 +751,7 @@ function TextRect:updateSelect()
    end
 
    if (self.copy_start_line == self.copy_end_line) and (self.start_copying_pos == self.end_copying_pos) then
-      self:set_selection(nil, nil, nil, nil)
+      self:reset_copy()
    end
 
    self:draw(false)
@@ -797,7 +764,6 @@ function TextRect.wheelMove(flags, hotspot_id)
    local tr = TextRect.hotspot_map[hotspot_id]
    local delta = math.ceil(bit.shr(flags, 16) / 3)
    local line_delta = math.ceil(delta / tr.line_height)
-   tr.wheeling = true
    if bit.band(flags, miniwin.wheel_scroll_back) ~= 0 then
       -- down
       if tr.start_line < tr.num_wrapped_lines - tr.rect_lines + 1 then
@@ -806,45 +772,34 @@ function TextRect.wheelMove(flags, hotspot_id)
          tr.display_start_line = tr.start_line
          tr.display_end_line = tr.end_line
          tr:draw()
-         CallPlugin("abc1a0944ae4af7586ce88dc", "BufferedRepaint")
       end
    else
-      -- up
       if tr.start_line > 1 then
+         -- up
          tr.start_line = math.max(1, tr.start_line - line_delta)
          tr.end_line = math.min(tr.num_wrapped_lines, tr.start_line + tr.rect_lines - 1)
          tr.display_start_line = tr.start_line
          tr.display_end_line = tr.end_line
          tr:draw()
-         CallPlugin("abc1a0944ae4af7586ce88dc", "BufferedRepaint")
       end -- if
-   end
-   tr.wheeling = false
-end
-
-function TextRect:underline_hyperlinks()
-   local hotspot_id = WindowInfo(self.window, 19)
-   if hotspot_id then
-      local url = self.hyperlinks[hotspot_id]
-      if url then
-         for _, v in ipairs (WindowHotspotList(self.window)) do
-            if string.find(v, url, 1, true) then
-               local left = WindowHotspotInfo(self.window, v, 1)
-               local right = WindowHotspotInfo(self.window, v, 3)
-               local bottom = WindowHotspotInfo(self.window, v, 4) + 1
-               WindowLine(self.window, left, bottom, right, bottom, 0xffffff, 256, 1);
-            end
-         end
-      end
    end
 end
 
 function TextRect.linkHover(flags, hotspot_id)
-   local tr = TextRect.hotspot_map[hotspot_id]
-   if tr.wheeling or (GetOption("underline_hyperlinks") == 0) then
+   if GetOption("underline_hyperlinks") == 0 then
       return
    end
-   tr:underline_hyperlinks()
+   local tr = TextRect.hotspot_map[hotspot_id]
+   local url = tr.hyperlinks[hotspot_id]
+   local hotspots = WindowHotspotList(tr.window)
+   for _, v in ipairs (hotspots) do
+      if string.find(v, url, 1, true) then
+         local left = WindowHotspotInfo(tr.window, v, 1)
+         local right = WindowHotspotInfo(tr.window, v, 3)
+         local bottom = WindowHotspotInfo(tr.window, v, 4) + 1
+         WindowLine(tr.window, left, bottom, right, bottom, 0xffffff, 256, 1);
+      end
+   end
    CallPlugin("abc1a0944ae4af7586ce88dc", "BufferedRepaint")
 end
 
@@ -854,12 +809,12 @@ function TextRect.cancelLinkHover(flags, hotspot_id)
 
    if not string.find(WindowInfo(tr.window, 19), url, 1, true) then
       tr:draw(false)
-      CallPlugin("abc1a0944ae4af7586ce88dc", "BufferedRepaint")
    end
 end
 
-function TextRect:setExternalMenuFunction(menu_generator_function)
-   self.external_menu_generator = menu_generator_function
+function TextRect:setExternalMenuFunction(menu_string_generator, menu_result_function)
+   self.external_menu_string_generator = menu_string_generator
+   self.external_menu_result_function = menu_result_function
 end
 
 function TextRect:rightClickMenu(hotspot_id)
@@ -874,32 +829,27 @@ function TextRect:rightClickMenu(hotspot_id)
       table.insert(menu_functions, TextRect.copyUrl)
    end
 
-   if not self.uncopyable then
-      if (self.copy_start_line ~= nil) and (self.copy_end_line ~= nil) then
-         table.insert(menu_text, "Copy Selected")
-         table.insert(menu_text, "Copy Selected Without Colors")
-         table.insert(menu_functions, TextRect.copy)
-         table.insert(menu_functions, TextRect.copyPlain)
-      end
-      table.insert(menu_text, "Copy All")
-      table.insert(menu_functions, TextRect.copyFull)
-      table.insert(menu_text, "Copy All Without Colors")
-      table.insert(menu_functions, TextRect.copyFullPlain)
+   if (self.copy_start_line ~= nil) and (self.copy_end_line ~= nil) then
+      table.insert(menu_text, "Copy Selected")
+      --table.insert(menu_text, "Copy Selected Without Colors")
+      --table.insert(menu_functions, TextRect.copy)
+      table.insert(menu_functions, TextRect.copyPlain)
    end
 
-   if self.external_menu_generator then
-      local external_string, external_functions = self.external_menu_generator()
-      if external_string:sub(1,1) == "!" then
-         external_string = external_string:sub(2)
+   table.insert(menu_text, "Copy All")
+   table.insert(menu_functions, TextRect.copyFull)
+
+   local inner_count = #menu_functions
+
+   if self.external_menu_string_generator and self.external_menu_result_function then
+      local ems = self.external_menu_string_generator()
+      if ems:sub(1,1) == "!" then
+         ems = ems:sub(2)
       end
 
-      if #menu_text > 0 then
-         table.insert(menu_text, "-")
-      end
-      table.insert(menu_text, external_string)
-      for _, v in ipairs(external_functions) do
-         table.insert(menu_functions, v)
-      end
+      table.insert(menu_text, "-")
+      table.insert(menu_text, ems)
+      table.insert(menu_functions, self.external_menu_result_function)
    end
 
    result = tonumber(
@@ -912,7 +862,12 @@ function TextRect:rightClickMenu(hotspot_id)
    )
 
    if result then
-      menu_functions[result](self, hotspot_id, result)
+      func = result
+      if result > inner_count then
+         result = result - inner_count
+         func = inner_count + 1
+      end
+      menu_functions[func](self, hotspot_id, result)
    end
 end
 
@@ -973,25 +928,16 @@ function TextRect:copyUrl(hotspot_id)
 end
 
 function TextRect:copyPlain()
-   self:copyAndNotify(self:selected_text(false))
+   self:copyAndNotify(self:selected_text())
 end
 
-function TextRect:copy()
-   self:copyAndNotify(self:selected_text(true))
-end
-
-function TextRect:selected_text(with_colors)
+function TextRect:selected_text()
    s_text = {}
    current_message = {}
 
    function store_message()
-      if current_message then
-         -- preserve the message and start the next one
-         if with_colors then
-            table.insert(s_text, canonicalize_colours(StylesToColours(current_message), true))
-         else
-            table.insert(s_text, strip_colours_from_styles(current_message))
-         end
+      if current_message[1] then
+         table.insert(s_text, StylesToColours(current_message)) -- removed colours
          current_message = {}
       end
    end
@@ -1008,8 +954,8 @@ function TextRect:selected_text(with_colors)
          end
 
          if (endpos ~= startpos) or (self.copy_start_line ~= self.copy_end_line) then
-            -- store current message when starting a new one after the first one
-            if (copy_line ~= self.copy_start_line) and self.wrapped_lines[copy_line][2] then
+            -- store current message when starting a new one
+            if self.wrapped_lines[copy_line][2] then
                store_message()
             end
             -- add styles from this wrapped line to the current message
@@ -1031,30 +977,21 @@ function TextRect:selected_text(with_colors)
    return table.concat(s_text, "\n")
 end
 
-function TextRect:getStyles()
+function GetLineText (styles)
    local t = {}
-   for _,line in ipairs(self.raw_lines) do
-      table.insert(t, line[1])
-   end
-   return t
-end
-
-function TextRect:getText()
-   local t = {}
-   for _,line in ipairs(self.raw_lines) do
-      table.insert(t, canonicalize_colours(StylesToColours(line[1]), true))
-   end
-   return table.concat(t, "\n")
-end
+   for _, style in ipairs (styles) do
+     table.insert (t, style.text)
+   end -- for
+   return table.concat (t)
+ end -- function GetLineText
 
 function TextRect:copyFull()
-   SetClipboard(self:getText())
-   ColourNote("yellow","","All text copied to clipboard ","limegreen","","with","yellow",""," colors.")
-end
-
-function TextRect:copyFullPlain()
-   SetClipboard(strip_colours(self:getText()))
-   ColourNote("yellow","","All text copied to clipboard ","red","","without","yellow",""," colors.")
+   local t = {}
+   for _,line in ipairs(self.raw_lines) do
+      table.insert(t, GetLineText(line[1]))
+   end
+   SetClipboard(table.concat(t,"\r\n"))
+   ColourNote("yellow","","All text copied to clipboard.")
 end
 
 function TextRect:generateHotspotID(id)
@@ -1062,4 +999,3 @@ function TextRect:generateHotspotID(id)
    TextRect.hotspot_map[hotspot_id] = self
    return hotspot_id
 end
-
