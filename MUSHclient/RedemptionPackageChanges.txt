@@ -1,5 +1,10 @@
 Redemption Client Package Major Changes List
 
+r0003 snapshot
+- Added scroll-back main window.
+- Fixed up chat window.
+- Mostly completed 'score' plugin.
+
 r0002 snapshot
 - Rollback to pre-miniwindow helper.
 

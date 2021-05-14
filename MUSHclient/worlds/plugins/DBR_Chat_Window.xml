@@ -327,8 +327,8 @@ default_width = 721 + Theme.RESIZER_SIZE + 18
 default_height = 235
 default_x = 0
 default_y = 0
-default_font_name = "Consolas"
-default_font_size = "11"
+default_font_name = "Courier New"
+default_font_size = "10"
 default_log_file_size = 0 -- MB or 0 for no split
 
 date_format = GetVariable("date_format") or "[%d %b %H:%M:%S] "
@@ -430,7 +430,7 @@ end
 addDefaultChannels()
 
 function makeRect(i)
-   tabs_rects[i] = TextRect.new(win, "tr"..tostring(i), tr_left, tr_top, tr_right, tr_bottom, 1000, true, Theme.PRIMARY_BODY, 3, "Dina", 10)
+   tabs_rects[i] = TextRect.new(win, "tr"..tostring(i), tr_left, tr_top, tr_right, tr_bottom, 1000, true, Theme.PRIMARY_BODY, 3, "Courier New", 10)
    tabs_scrollbars[i] = ScrollBar.new(win, "sb"..tostring(i), tr_right, tr_top, draw_right, draw_bottom-Theme.RESIZER_SIZE)
 
    tabs_rects[i]:addUpdateCallback(tabs_scrollbars[i], tabs_scrollbars[i].setScroll)

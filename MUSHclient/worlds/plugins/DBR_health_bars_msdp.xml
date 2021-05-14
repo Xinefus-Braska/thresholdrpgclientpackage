@@ -54,7 +54,7 @@ require "serialize"
 require "colors"
 require "commas"
 
-default_width         = 737 + Theme.RESIZER_SIZE + 2 + 400
+default_width         = 738 + Theme.RESIZER_SIZE + 230
 default_x             = 0
 default_y             = 725
 
@@ -64,9 +64,9 @@ local TOP_MARGIN      = 6
 local stacked = 0
 local showLabels = 1
 graphicalMode = tonumber(GetVariable("graphicalMode") or 1)
-local defaultShowBar = {Health={"Health :",true,"Health:",0x00ff00,0x004400}, Ki={"Ki     :",true,"Ki:",0xff5500,0x442200}, Stamina={"Stamina:",true,"Stamina:",0xffff00,0xd1ce00}, PL={"PL     :",true,"PL:",0xffffff,0x444444}, Focus={"Focus  :",true, "Focus:",0x00d7ff,0x00ffff}, Fight={"Enemy  :",true, "Enemy:",0x0000ff,0x000080}}
+local defaultShowBar = {Health={"Health :",true,"Health:",0x00ff00,0x004400}, Ki={"Ki     :",true,"Ki:",0xff5500,0x442200}, PL={"PL     :",true,"PL:",0xffffff,0x444444}, Focus={"Focus  :",true, "Focus:",0x00d7ff,0x00ffff}, Enemy={"Enemy  :",true, "Enemy:",0x0000ff,0x000080}}
 showBar = defaultShowBar
-local barIndex = {"Health", "Ki", "Stamina", "PL", "Focus", "Fight"}
+local barIndex = {"Health", "Ki", "PL", "Focus", "Enemy"}
 
 thresh1active = tonumber (GetVariable("thresh1active")) or 0
 thresh2active = tonumber (GetVariable("thresh2active")) or 0
@@ -121,7 +121,9 @@ function validate_percent(input)
 end
 
 function shorten(val)
-    if val >= 10^18 then
+    if val == null then
+      return string.format("0")
+    elseif val >= 10^18 then
       return string.format("%.2fQt", val / 1000000000000000000 )
     elseif val >= 10^15 then
       return string.format("%.2fQu", val / 1000000000000000 )
@@ -268,13 +270,12 @@ function DisplayStatsPage()
 
       DoNextSimpleBar("Health", getmsdp("HEALTH"), getmsdp("HEALTH_MAX"))
       DoNextSimpleBar("Ki", getmsdp("MANA"), getmsdp("MANA_MAX"))
-      DoNextSimpleBar("Stamina", getmsdp("STAMINA"), getmsdp("STAMINAMAX"))
-      DoNextSimpleBar("PL", getmsdp("CURRENTPL"), getmsdp("BASEPL"))
-      --DoNextSimpleBar("Focus", getmsdp("FOCUS"), getmsdp("FOCUS_MAX"))
+      DoNextSimpleBar("PL", getmsdp("CURRENT_PL"), getmsdp("BASE_PL"))
+
       bar = "Focus"
       if (showBar[bar][2] == true) then
         focus = tonumber(getmsdp("FOCUS"))
-        focusmax = tonumber(getmsdp("FOCUS_MAX"))
+        focusmax = tonumber(100)
         txt = ""
         fighting = getmsdp("OPPONENT_NAME")
         if fighting ~= "" and fighting ~= null then
@@ -290,8 +291,8 @@ function DisplayStatsPage()
           if graphicalMode == 1 then
             gauge(win,showBar[bar][3],focus,focusmax,xpos+label_width,ypos,bar_width,line_height,showBar[bar][4],0x000000,num_ticks,0x000000,showBar[bar][5],nil,flat_gauges==1)
             if overlay_numbers == 1 or overlay_numbers == 3 or (graphicalMode == 0 and overlay_numbers ~= 2) then
-               maxlen = math.max(#shorten(focusmax), #shorten(focus))
-               txt = string.lpad(shorten(focus), maxlen, ' ').."/"..string.rpad(shorten(focusmax),maxlen,' ')
+                maxlen = math.max(#shorten(focusmax), #shorten(focus))
+               txt = string.lpad( focus, maxlen, ' ').."/"..string.rpad( focusmax, maxlen,' ')
             end
             if overlay_numbers == 2 or overlay_numbers == 3 then
                txt = txt..((overlay_numbers == 3 and " (") or "")..string.lpad(string.format('%d',100*focus/focusmax).."%",4,' ')..((overlay_numbers == 3 and ")") or "")
@@ -323,58 +324,60 @@ function DisplayStatsPage()
           xpos = xpos+(graphicalMode*bar_width)+LEFT_MARGIN
         end
       end
-      bar = "Fight"
-      if (showBar[bar][2] == true) then
-        ehp = tonumber(getmsdp("OPPONENT_HEALTH"))
-        ehpmax = tonumber(getmsdp("OPPONENT_HEALTH_MAX"))
-        txt = ""
-        fighting = getmsdp("OPPONENT_NAME")
-        if fighting ~= "" and fighting ~= null then
-          if getmsdp("OPPONENT_HEALTH") ~= "0" then
-            if showLabels == 1 then
-              if stacked == 1 then
-                WindowText(win, font_id, showBar[bar][1], xpos,  ypos, 0, 0, showBar[bar][4], false)
-              else
-                xpos = xpos + WindowText(win, font_id, showBar[bar][3], xpos,  ypos, 0, 0, showBar[bar][4], false)
-              end
-            end
-          end
-          if graphicalMode == 1 then
-            gauge(win,showBar[bar][3],tonumber(getmsdp("OPPONENT_HEALTH")),tonumber(getmsdp("OPPONENT_HEALTH_MAX")),xpos+label_width,ypos,bar_width,line_height,showBar[bar][4],0x000000,num_ticks,0x000000,showBar[bar][5],nil,flat_gauges==1)
-            if overlay_numbers == 1 or overlay_numbers == 3 or (graphicalMode == 0 and overlay_numbers ~= 2) then
-               maxlen = math.max(#shorten(ehpmax), #shorten(ehp))
-               txt = string.lpad(shorten(ehp), maxlen, ' ').."/"..string.rpad(shorten(ehpmax),maxlen,' ')
-            end
-            if overlay_numbers == 2 or overlay_numbers == 3 then
-               txt = txt..((overlay_numbers == 3 and " (") or "")..string.lpad(string.format('%d',100*ehp/ehpmax).."%",4,' ')..((overlay_numbers == 3 and ")") or "")
-            end
-            if overlay_numbers ~= 0 then
-              txtlen = WindowTextWidth(win,font_id,txt)
-              outlined_text(win, font_id, txt, xpos+label_width+((bar_width-txtlen)/2), ypos, 0, 0, 0xeeeeee, utf8)
-            end
-          else -- text mode
-            xpos = xpos + (((stacked == 0) and 1) or 0)*WindowText(win, font_id, " ["..txt.."]", xpos+label_width, ypos, 0, 0, showBar[bar][4], false)
-          end
-        else -- darkened part
+
+    bar = "Enemy"
+    if (showBar[bar][2] == true) then
+      ehp = tonumber(getmsdp("OPPONENT_HEALTH"))
+      ehpmax = tonumber(getmsdp("OPPONENT_HEALTH_MAX"))
+      txt = ""
+      fighting = getmsdp("OPPONENT_NAME")
+      if fighting ~= "" and fighting ~= null then
+        if getmsdp("OPPONENT_HEALTH") ~= "0" then
           if showLabels == 1 then
             if stacked == 1 then
-              WindowText(win, font_id, showBar[bar][1], xpos, ypos, 0, 0, 0x444444, false)
+              WindowText(win, font_id, showBar[bar][1], xpos,  ypos, 0, 0, showBar[bar][4], false)
             else
-              xpos = xpos + WindowText(win, font_id, showBar[bar][3], xpos, ypos, 0, 0, 0x444444, false)
+              xpos = xpos + WindowText(win, font_id, showBar[bar][3], xpos,  ypos, 0, 0, showBar[bar][4], false)
             end
           end
-          if graphicalMode == 1 then
-            gauge(win,showBar[bar][3],ehp,100,xpos+label_width,ypos,bar_width,line_height,0x444444,0x000000,num_ticks,0x000000,0x222222,nil,flat_gauges==1)
-          else -- text mode
-            xpos = xpos + (((stacked == 0) and 1) or 0)*WindowText(win, font_id, " [    ]", xpos+label_width, ypos, 0, 0, 0x444444, false)
+        end
+        if graphicalMode == 1 then
+          gauge(win,showBar[bar][3],ehp,ehpmax,xpos+label_width,ypos,bar_width,line_height,showBar[bar][4],0x000000,num_ticks,0x000000,showBar[bar][5],nil,flat_gauges==1)
+          if overlay_numbers == 1 or overlay_numbers == 3 or (graphicalMode == 0 and overlay_numbers ~= 2) then
+              maxlen = math.max(#shorten(ehpmax), #shorten(ehp))
+             txt = string.lpad(shorten(ehp), maxlen, ' ').."/"..string.rpad(shorten(ehpmax), maxlen,' ')
+          end
+          if overlay_numbers == 2 or overlay_numbers == 3 then
+             txt = txt..((overlay_numbers == 3 and " (") or "")..string.lpad(string.format('%d',100*ehp/ehpmax).."%",4,' ')..((overlay_numbers == 3 and ")") or "")
+          end
+          if overlay_numbers ~= 0 then
+            txtlen = WindowTextWidth(win,font_id,txt)
+            outlined_text(win, font_id, txt, xpos+label_width+((bar_width-txtlen)/2), ypos, 0, 0, 0xeeeeee, utf8)
+          end
+        else
+          xpos = xpos + (((stacked == 0) and 1) or 0)*WindowText(win, font_id, " ["..txt.."]", xpos+label_width, ypos, 0, 0, showBar[bar][4], false)
+        end
+      else --darkened part...
+        if showLabels == 1 then
+          if stacked == 1 then
+            WindowText(win, font_id, showBar[bar][1], xpos, ypos, 0, 0, 0x444444, false)
+          else
+            xpos = xpos + WindowText(win, font_id, showBar[bar][3], xpos, ypos, 0, 0, 0x444444, false)
           end
         end
-        if stacked == 1 then
-          ypos = ypos + line_height + 1
-        else
-          xpos = xpos+(graphicalMode*bar_width)+LEFT_MARGIN
+        if graphicalMode == 1 then
+          gauge(win,showBar[bar][3],ehp,ehpmax,xpos+label_width,ypos,bar_width,line_height,0x444444,0x000000,num_ticks,0x000000,0x222222,nil,flat_gauges==1)
+        else -- text mode
+          xpos = xpos + (((stacked == 0) and 1) or 0)*WindowText(win, font_id, " [    ]", xpos+label_width, ypos, 0, 0, 0x444444, false)
         end
       end
+      if stacked == 1 then
+        ypos = ypos + line_height + 1
+      else
+        xpos = xpos+(graphicalMode*bar_width)+LEFT_MARGIN
+      end
+    end
+
   end
 
   Theme.DressWindow(win, nil, nil)
@@ -405,7 +408,7 @@ function right_click_menu ()
       end
    end
    menustring = menustring .. ">Activate/De-activate|"..activeBars.."<|"
-   menustring = menustring .. ">Configure Colors|>Health|Main|Border|<|>Ki|Main|Border|<|>Stamina|Main|Border|<|>PL|Main|Border|<|>Focus|Main|Border|<|>Enemy|Main|Border|<|<|"
+   menustring = menustring .. ">Configure Colors|>Health|Main|Border|<|>Ki|Main|Border|<|>PL|Main|Border|<|>Focus|Main|Border|<|>Enemy|Main|Border|<|<|"
    menustring = menustring .. ">HP Thresholds|>First|"..(((thresh1active == 1) and "+") or "").."Activate|Set Percent ("..thresh1percent.."%)|Set Color ("..RGBColourToName(thresh1color)..")|<|>Second|"..(((thresh2active == 1) and "+") or "").."Activate|Set Percent ("..thresh2percent.."%)|Set Color ("..RGBColourToName(thresh2color)..")|<|<|"
    menustring = menustring .. ((graphicalMode==0 and "+") or "").."Text Mode|"..((flat_gauges==1 and "+") or "").."Use Flat Gauges|>Overlay Numbers|"..((overlay_numbers==0 and "+") or "").."None"..(((graphicalMode==0) and " (Same as \"Standard\" in Text Mode)") or "").."|"..((overlay_numbers==1 and "+") or "").."Standard|"..((overlay_numbers==2 and "+") or "").."Percentages|"..((overlay_numbers==3 and "+") or "").."Standard+Percentages|<|-|>(In case of emergency)|Reduce Size|<|"
 
@@ -434,22 +437,22 @@ function right_click_menu ()
             stacked = 1
             height = ((line_height+1)*numBars)+(TOP_MARGIN*2)
          end
-      elseif numResult >= 4 and numResult <= 9 then
+     elseif numResult >= 4 and numResult <= 8 then
          -- activate/de-activate
          showBar[barIndex[numResult-3]][2] = not showBar[barIndex[numResult-3]][2]
-      elseif numResult >= 10 and numResult <= 21 then
+     elseif numResult >= 9 and numResult <= 18 then
          -- change colors
-         local colourIndex = 4
+         local colourIndex = 5
          if (numResult % 2 == 1) then
-            colourIndex = 5
+            colourIndex = 4
          end
-         local newcolour = PickColour (showBar[barIndex[math.ceil((numResult-9)/2)]][colourIndex])
+         local newcolour = PickColour (showBar[barIndex[math.ceil((numResult-8)/2)]][colourIndex])
          if newcolour ~= -1 then
-            showBar[barIndex[math.ceil((numResult-9)/2)]][colourIndex] = newcolour
+            showBar[barIndex[math.ceil((numResult-8)/2)]][colourIndex] = newcolour
          end
-      elseif numResult == 22 then
+     elseif numResult == 19 then
          thresh1active = (((thresh1active == 0) and 1) or 0)
-      elseif numResult == 23 then
+     elseif numResult == 20 then
          local perc = utils.inputbox( "I want the HP bars to change color when they drop below this percent...\n(enter a whole number between 1 and 100)", "Group Monitor HP Threshold #1", thresh1percent, nil, nil, {validate=validate_percent})
          if perc then
             if string.sub(perc, -1) == "%" then
@@ -457,14 +460,14 @@ function right_click_menu ()
             end
             thresh1percent = tonumber(perc)
          end
-      elseif numResult == 24 then
+     elseif numResult == 21 then
          local newColor = PickColour (thresh1color)
          if newcolor ~= -1 then
             thresh1color = newColor
          end
-      elseif numResult == 25 then
+     elseif numResult == 22 then
          thresh2active = (((thresh2active == 0) and 1) or 0)
-      elseif numResult == 26 then
+     elseif numResult == 23 then
          local perc = utils.inputbox( "I want the HP bars to change color when they drop below this percent...\n(enter a whole number between 1 and 100)", "Group Monitor HP Threshold #2", thresh2percent, nil, nil, {validate=validate_percent})
          if perc then
             if string.sub(perc, -1) == "%" then
@@ -472,25 +475,25 @@ function right_click_menu ()
             end
             thresh2percent = tonumber(perc)
          end
-      elseif numResult == 27 then
+     elseif numResult == 24 then
          local newColor = PickColour (thresh2color)
          if newcolor ~= -1 then
             thresh2color = newColor
          end
-    elseif numResult == 28 then
+    elseif numResult == 25 then
          -- text mode
          graphicalMode = (((graphicalMode == 0) and 1) or 0)
-      elseif numResult == 29 then
+     elseif numResult == 26 then
          flat_gauges = (((flat_gauges == 0) and 1) or 0)
-      elseif numResult == 30 then
+     elseif numResult == 27 then
          overlay_numbers = 0
-      elseif numResult == 31 then
+     elseif numResult == 28 then
          overlay_numbers = 1
-      elseif numResult == 32 then
+     elseif numResult == 29 then
          overlay_numbers = 2
-      elseif numResult == 33 then
+     elseif numResult == 30 then
          overlay_numbers = 3
-      elseif numResult == 34 then
+     elseif numResult == 31 then
          -- reduce size
          font_name = default_font_name
          font_size = default_font_size
@@ -514,8 +517,8 @@ function OnPluginBroadcast (msg, id, name, text)
       page_built = false
       return
     end
-    if (text == "HEALTH" or text == "MANA" or text == "STAMINA" or text == "CURRENTPL" or text == "FOCUS" or
-      text == "HEALTH_MAX" or text == "MANA_MAX" or text == "STAMINAMAX" or text == "FOCUS_MAX" or text == "OPPONENT_HEALTH" or text == "OPPONENT_HEALTH_MAX") then -- or text == "BASEPL" some reason basepl causes a bug.
+    if (text == "HEALTH" or text == "MANA" or text == "CURRENT_PL" or text == "FOCUS" or
+      text == "HEALTH_MAX" or text == "MANA_MAX" or text == "FOCUS_MAX" or text == "OPPONENT_HEALTH" or text == "OPPONENT_HEALTH_MAX") then -- or text == "BASEPL" some reason basepl causes a bug.
       page_built = true
       DisplayStatsPage()
     end
@@ -668,15 +671,12 @@ function OnPluginInstall()
 
    local fonts = utils.getfontfamilies()
 
-   if fonts["Consolas"] then
-      default_font_size = 11
-      default_font_name = "Consolas"
-   elseif fonts["Courier New"] then
-      default_font_size = 9
+   if fonts["Courier New"] then
+      default_font_size = 10
       default_font_name = "Courier New"
    else
-      default_font_size = 9
-      default_font_name = "Lucida Console"
+      default_font_size = 11
+      default_font_name = "Consolas"
    end
 
    font_name = GetVariable("font_name") or default_font_name

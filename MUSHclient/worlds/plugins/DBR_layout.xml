@@ -68,7 +68,7 @@ require "scrollbar"
 
 default_top = 240
 default_bottom = 720
-default_left = 7
+default_left = 6
 default_right = 730
 
 -- Variables not saved.
