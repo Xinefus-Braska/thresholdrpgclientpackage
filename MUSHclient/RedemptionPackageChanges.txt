@@ -1,6 +1,6 @@
 Redemption Client Package Major Changes List
 
-r0003 snapshot
+r0004 snapshot
 - Fixed Default load.
 
 r0003 snapshot
