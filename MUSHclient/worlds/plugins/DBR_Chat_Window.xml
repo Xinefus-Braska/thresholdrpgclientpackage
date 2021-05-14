@@ -92,8 +92,8 @@ USAGE:
 
   <trigger
    enabled="n"
-   name="Question"
-   match="^\[Question\] (.+)$"
+   name="Ask_Answer"
+   match="^\[(Ask|Answer)\] (.+)$"
    regexp="y"
    script="channel"
    sequence="100"
@@ -273,7 +273,7 @@ USAGE:
   <trigger
    enabled="n"
    name="Auction_House"
-   match="\[ DBR: Auction \] (.+)$"
+   match="\[ DBU:MMO Auction \] (.+)$"
    regexp="y"
    script="non_channel"
    sequence="100"
@@ -327,8 +327,8 @@ default_width = 721 + Theme.RESIZER_SIZE + 18
 default_height = 235
 default_x = 0
 default_y = 0
-default_font_name = "Consolas"
-default_font_size = "11"
+default_font_name = "Courier New"
+default_font_size = "10"
 default_log_file_size = 0 -- MB or 0 for no split
 
 date_format = GetVariable("date_format") or "[%d %b %H:%M:%S] "
@@ -341,8 +341,8 @@ log_file_size = tonumber(GetVariable("log_file_size")) or default_log_file_size
 
 local init_nonchannel_keys = {"Auction_House", "Auto_Events", "Clan_Info", "Friend_Info", "HighScore", "Info", "IMM_Logs", "News_Flash", "RP_Story", "Battle_Arena"}
 local init_nonchannel_pairs = {["Auction_House"]="DBNU Auction House", ["Auto_Events"]="Auto-Event", ["Clan_Info"]="Clan-Info", ["Friend_Info"]="Friend-Info", ["HighScore"]="HighScore", ["Info"]="Info", ["IMM_Logs"]="IMM Logs", ["News_Flash"]="NEWS-FLASH", ["RP_Story"]="RP-STORY", ["Battle_Arena"]="BATTLE ARENA"} --, ["remote_socials"]="Remote Socials"
-local init_channel_keys = {"Question", "Clan", "FriendChat", "IMM", "Music", "Newbie", "OOC", "Race", "RP_Chat", "say", "say_get", "Scouter", "Wartalk", "Yell"}
-local init_channel_pairs = {["Question"]="Question", ["Clan"]="Clan", ["FriendChat"]="FriendChat", ["IMM"]="IMM", ["Music"]="Music", ["Newbie"]="Newbie", ["OOC"]="OOC", ["Race"]="Race", ["RP_Chat"]="RP_Chat", ["say"]="say", ["say_get"]="say_get", ["Scouter"]="Scouter", ["Wartalk"]="Wartalk", ["Yell"]="Yell"}
+local init_channel_keys = {"Ask_Answer", "Clan", "FriendChat", "IMM", "Music", "Newbie", "OOC", "Race", "RP_Chat", "say", "say_get", "Scouter", "Wartalk", "Yell"}
+local init_channel_pairs = {["Ask_Answer"]="Ask_Answer", ["Clan"]="Clan", ["FriendChat"]="FriendChat", ["IMM"]="IMM", ["Music"]="Music", ["Newbie"]="Newbie", ["OOC"]="OOC", ["Race"]="Race", ["RP_Chat"]="RP_Chat", ["say"]="say", ["say_get"]="say_get", ["Scouter"]="Scouter", ["Wartalk"]="Wartalk", ["Yell"]="Yell"}
 
 channels_table = {}
 loadstring(GetVariable("channels_table") or "")()
@@ -410,7 +410,7 @@ function addDefaultChannels()
       end
    end
 
-   EnableTrigger("Question", check_channel_trigger("Question"))
+   EnableTrigger("Ask_Answer", check_channel_trigger("Ask_Answer"))
    EnableTrigger("Clan", check_channel_trigger("Clan"))
    EnableTrigger("FriendChat", check_channel_trigger("FriendChat"))
    EnableTrigger("IMM", check_channel_trigger("IMM"))
@@ -430,7 +430,7 @@ end
 addDefaultChannels()
 
 function makeRect(i)
-   tabs_rects[i] = TextRect.new(win, "tr"..tostring(i), tr_left, tr_top, tr_right, tr_bottom, 1000, true, Theme.PRIMARY_BODY, 3, "Dina", 10)
+   tabs_rects[i] = TextRect.new(win, "tr"..tostring(i), tr_left, tr_top, tr_right, tr_bottom, 1000, true, Theme.PRIMARY_BODY, 3, "Courier New", 10)
    tabs_scrollbars[i] = ScrollBar.new(win, "sb"..tostring(i), tr_right, tr_top, draw_right, draw_bottom-Theme.RESIZER_SIZE)
 
    tabs_rects[i]:addUpdateCallback(tabs_scrollbars[i], tabs_scrollbars[i].setScroll)
@@ -1120,7 +1120,7 @@ function extend_rightclick_menu_result(sender, hotspot_id, result)
          end
       end
 
-      EnableTrigger("Question", check_channel_trigger("Question"))
+      EnableTrigger("Ask_Answer", check_channel_trigger("Ask_Answer"))
       EnableTrigger("Clan", check_channel_trigger("Clan"))
       EnableTrigger("FriendChat", check_channel_trigger("FriendChat"))
       EnableTrigger("IMM", check_channel_trigger("IMM"))
