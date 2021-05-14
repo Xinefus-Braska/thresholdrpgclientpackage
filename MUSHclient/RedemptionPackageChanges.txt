@@ -1,6 +1,9 @@
 Redemption Client Package Major Changes List
 
 r0003 snapshot
+- Fixed Default load.
+
+r0003 snapshot
 - Added scroll-back main window.
 - Fixed up chat window.
 - Mostly completed 'score' plugin.

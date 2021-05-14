@@ -427,16 +427,17 @@
 </printing>
 
 <!-- plugins -->
-<include name="aard_keyboard_lockout.xml" plugin="y" />
-<include name="aard_chat_echo.xml" plugin="y" />
-<include name="aard_requirements.xml" plugin="y" />
-<include name="aard_package_update_checker.xml" plugin="y" />
-<include name="aard_repaint_buffer.xml" plugin="y" />
-<include name="aard_miniwindow_z_order_monitor.xml" plugin="y" />
-<include name="aard_Copy_Colour_Codes.xml" plugin="y" />
-<include name="aard_soundpack.xml" plugin="y" />
-<include name="aard_help.xml" plugin="y" />
-<include name="aard_new_connection.xml" plugin="y" />
-<include name="aard_GMCP_handler.xml" plugin="y" />
+<include name="DBR_Chat_Window.xml" plugin="y" />
+<include name="DBR_chat_echo.xml" plugin="y" />
+<include name="DBR_health_bars_msdp.xml" plugin="y" />
+<include name="DBR_layout.xml" plugin="y" />
+<include name="DBR_miniwindow_z_order_monitor.xml" plugin="y" />
+<include name="DBR_repaint_buffer.xml" plugin="y" />
+<include name="DBR_Statmon_MSDP.xml" plugin="y" />
+<include name="DBR_Theme_Controller.xml" plugin="y" />
+<include name="MSDPHandler.xml" plugin="y" />
+<include name="MUSHclient_Help.xml" plugin="y" />
+<include name="Omit_Blank_Lines.xml" plugin="y" />
 <include name="Hyperlink_URL2.xml" plugin="y" />
+<include name="DBR_splitscreen_scrollback.xml" plugin="y" />
 </muclient>
