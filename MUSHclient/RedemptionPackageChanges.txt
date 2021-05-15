@@ -1,5 +1,8 @@
 Redemption Client Package Major Changes List
 
+r0005 snapshot
+- Fixed plugin error on closing client.
+
 r0004 snapshot
 - Fixed Default load.
 
