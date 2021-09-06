@@ -273,7 +273,7 @@ USAGE:
   <trigger
    enabled="n"
    name="Auction_House"
-   match="\[ DBU:MMO Auction \] (.+)$"
+   match="\[ DBR Auction \] (.+)$"
    regexp="y"
    script="non_channel"
    sequence="100"
@@ -340,7 +340,7 @@ log_timestamps = tonumber(GetVariable("log_timestamps")) or 1
 log_file_size = tonumber(GetVariable("log_file_size")) or default_log_file_size
 
 local init_nonchannel_keys = {"Auction_House", "Auto_Events", "Clan_Info", "Friend_Info", "HighScore", "Info", "IMM_Logs", "News_Flash", "RP_Story", "Battle_Arena"}
-local init_nonchannel_pairs = {["Auction_House"]="DBNU Auction House", ["Auto_Events"]="Auto-Event", ["Clan_Info"]="Clan-Info", ["Friend_Info"]="Friend-Info", ["HighScore"]="HighScore", ["Info"]="Info", ["IMM_Logs"]="IMM Logs", ["News_Flash"]="NEWS-FLASH", ["RP_Story"]="RP-STORY", ["Battle_Arena"]="BATTLE ARENA"} --, ["remote_socials"]="Remote Socials"
+local init_nonchannel_pairs = {["Auction_House"]="DBR Auction House", ["Auto_Events"]="Auto-Event", ["Clan_Info"]="Clan-Info", ["Friend_Info"]="Friend-Info", ["HighScore"]="HighScore", ["Info"]="Info", ["IMM_Logs"]="IMM Logs", ["News_Flash"]="NEWS-FLASH", ["RP_Story"]="RP-STORY", ["Battle_Arena"]="BATTLE ARENA"} --, ["remote_socials"]="Remote Socials"
 local init_channel_keys = {"Ask_Answer", "Clan", "FriendChat", "IMM", "Music", "Newbie", "OOC", "Race", "RP_Chat", "say", "say_get", "Scouter", "Wartalk", "Yell"}
 local init_channel_pairs = {["Ask_Answer"]="Ask_Answer", ["Clan"]="Clan", ["FriendChat"]="FriendChat", ["IMM"]="IMM", ["Music"]="Music", ["Newbie"]="Newbie", ["OOC"]="OOC", ["Race"]="Race", ["RP_Chat"]="RP_Chat", ["say"]="say", ["say_get"]="say_get", ["Scouter"]="Scouter", ["Wartalk"]="Wartalk", ["Yell"]="Yell"}
 
