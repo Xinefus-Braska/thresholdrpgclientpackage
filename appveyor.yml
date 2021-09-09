@@ -8,7 +8,7 @@ image: Visual Studio 2015
 clone_depth: 1
 environment:
   auth_token:
-    secure: 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 #zD0l+yBJscs3IjjlD85Vc1cdXXGWhEXiCrthKrhXe+B8iR03sJW9zAoBJz9md65X
+    secure: zD0l+yBJscs3IjjlD85Vc1cdXXGWhEXiCrthKrhXe+B8iR03sJW9zAoBJz9md65X
 install:
 - ps: pushd C:\
 - ps: Start-FileDownload 'https://github.com/fiendish/LuaJIT-build/releases/download/latest/lua51.dll'
@@ -65,7 +65,7 @@ deploy:
 - provider: GitHub
   tag: $(PACKAGE_VERSION)
   auth_token:
-    secure: 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 #zD0l+yBJscs3IjjlD85Vc1cdXXGWhEXiCrthKrhXe+B8iR03sJW9zAoBJz9md65X
+    secure: zD0l+yBJscs3IjjlD85Vc1cdXXGWhEXiCrthKrhXe+B8iR03sJW9zAoBJz9md65X
   artifact: /Redemption_MUSHclient_r.*\.(exe|zip)/
   force_update: true
   on:
