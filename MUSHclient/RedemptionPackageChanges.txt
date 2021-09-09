@@ -1,5 +1,9 @@
 Redemption Client Package Major Changes List
 
+r0006 snapshot
+- Updated Ask_Answer channel to Question.
+- Fixed the Auction channel. 
+
 r0005 snapshot
 - Fixed plugin error on closing client.
 
