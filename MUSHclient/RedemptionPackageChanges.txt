@@ -1,5 +1,9 @@
 Redemption Client Package Major Changes List
 
+r0006 snapshot
+- Changed Chat channelf or Roleplay.
+- Added BTI plugin for Admins.
+
 r0005 snapshot
 - Fixed plugin error on closing client.
 
