@@ -1,5 +1,8 @@
 Redemption Client Package Major Changes List
 
+r0008 snapshot
+- I don't remember how pull requests work...
+
 r0007 snapshot
 - Changed Chat channelf or Roleplay.
 - Added BTI plugin for Admins.
