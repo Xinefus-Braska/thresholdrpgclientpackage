@@ -103,7 +103,7 @@ USAGE:
   <trigger
    enabled="n"
    name="RP_Chat"
-   match="^\(Chat\) (.+)$"
+   match="^\(Roleplay\) (.+)$"
    regexp="y"
    script="channel"
    sequence="100"
