@@ -8,7 +8,7 @@
 
 <plugin
    name="GMCP_handler"
-   author="Fiendish"
+   author="Xinefus"
    id="3e7dedbe37e44942dd46d264"
    language="Lua"
    purpose="Handle GMCP messages and broadcast data"
@@ -19,14 +19,14 @@
 >
 <description trim="y">
 
-Aardwolf GMCP Handler
+ThresholdRPG GMCP Handler
 
 Purpose is to process incoming GMCP messages, notify other plugins
 of arrival of new data, and make that data accessible.
 
-For full details on GMCP in Aardwolf see:
+For full details on GMCP in ThresholdRPG see:
 
-   http://www.aardwolf.com/wiki/index.php/Clients/GMCP
+   https://wiki.thresholdrpg.com/w/GMCP
 
 For Mushclient specific information on how to access GMCP data, see:
 
@@ -94,7 +94,7 @@ For Mushclient specific information on how to access GMCP data, see:
 <script>
 <![CDATA[
 
-aard_extras = require "aard_lua_extras"
+thresh_extras = require "thresh_lua_extras"
 require "json"
 require "serialize"
 require "gmcphelper"
@@ -108,16 +108,16 @@ if wshell then
    rw = wshell.RegWrite
 end
 if rr and rw then
-   ident_ok, ident = pcall(rr, wshell, "HKCU\\Software\\AardwolfMUSHclient\\Ident")
+   ident_ok, ident = pcall(rr, wshell, "HKCU\\Software\\ThresholdRPGMUSHclient\\Ident")
    if not ident_ok then
-      pcall(rw, wshell, "HKCU\\Software\\AardwolfMUSHclient\\Ident", CreateGUID(), "REG_SZ")
-      ident_ok, ident = pcall(rr, wshell, "HKCU\\Software\\AardwolfMUSHclient\\Ident")
+      pcall(rw, wshell, "HKCU\\Software\\ThresholdRPGMUSHclient\\Ident", CreateGUID(), "REG_SZ")
+      ident_ok, ident = pcall(rr, wshell, "HKCU\\Software\\ThresholdRPGMUSHclient\\Ident")
    end
 end
 ident = ident_ok and ident or "{ident failed}"
 
 function OnPluginListChanged()
-   dofile "lua/aard_requirements.lua"
+   dofile "lua/thresh_requirements.lua"
 end
 
 local GMCP      = 201
@@ -243,7 +243,7 @@ function OnPluginTelnetSubnegotiation (msg_type, data)
   else
       ColourNote("white", "red", "GMCP DECODE ERROR: "..t)
       ColourNote("white", "red", "Received invalid GMCP message: "..utils.utf8convert(data))
-      ColourNote("white", "red", "Fiendish still doesn't know what causes this. Please disconnect and reconnect to Aardwolf or restart MUSHclient and then send that invalid message to him for analysis.")
+      ColourNote("white", "red", "Xinefus still doesn't know what causes this. Please disconnect and reconnect to ThresholdRPG or restart MUSHclient and then send that invalid message to him for analysis.")
   end  -- if
 
 end -- function OnPluginTelnetSubnegotiation
@@ -290,9 +290,9 @@ function OnPluginTelnetRequest (msg_type, data)
       -- This hard-coded block may need to be made into a config table as we add more message types.
       Send_GMCP_Packet (
          string.format ('Core.Hello { "client": "MUSHclient", "version": "%s", "ident": "%s" }',
-                        Version().." r"..aard_extras.PackageVersionFull(), ident)
+                        Version().." r"..thresh_extras.PackageVersionFull(), ident)
       )
-      Send_GMCP_Packet ('Core.Supports.Set [ "Char 1", "Comm 1", "Room 1" ]')
+      Send_GMCP_Packet ('Core.Supports.Set [ "Char 1", "Char.Skills 1", "Char.Items 1" ]') -- , "Comm 1", "Room 1"
       return true
    end
 
