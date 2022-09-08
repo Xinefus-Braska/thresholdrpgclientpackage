@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Aardwolf MUSHclient Package Installer Download</title>
+  <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+  <script src="js/store2.js"></script>
+  <script src="js/store.cache.js"></script>
+
+  <link rel="stylesheet" href="//fiendish.github.io/gh-fork-banner/gh.css">
+  <style>
+  html, body {
+    padding: 0;
+    margin: 0;
+    font-family: Georgia, serif;
+    color: #222222;
+    background-color: #FEFAFF;
+  }
+  p {
+    margin: 0;
+  }
+  em {
+    text-decoration: underline;
+  }
+  strong {
+    color: #4682B4;
+  }
+  li {
+    margin: 30px;
+  }
+  #changes-wrapper {
+    background-color: #F9F9F9;
+    margin: 0;
+    padding: 0;
+  }
+  #changes {
+    font-family: "Lucida Console", Monaco, monospace;
+    font-size: 85%;
+    line-height: 150%;
+    padding-right: 2em;
+    padding-left: 2em;
+    text-align: left;
+  }
+  .description {
+    padding: 10px;
+    display: inline-block;
+    font-size:120%;
+    width: 80%;
+    text-align: left;
+    min-width: 400px;
+  }
+  .number {
+    font-family: sans-serif;
+    color: maroon;
+    font-weight: bold;
+  }
+
+  .button {
+    padding: .4em 1em;
+    display: inline-block;
+    position: relative;
+    line-height: normal;
+    margin-right: .1em;
+    cursor: pointer;
+    vertical-align: middle;
+    text-align: center;
+    overflow: visible;
+    font-family: Arial,Helvetica,sans-serif;
+    font-size: 1em;
+    border: 1px solid #a5a5a5;
+    background: #f6f6f6;
+    font-weight: normal;
+    border-radius: 3px;
+    text-decoration: none;
+    color: #454545;
+  }
+
+  .button:hover {
+    background-color: #e7e7e7;
+  }
+
+  .button:active {
+    background-color: #c7c7c7;
+  }
+
+  .github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media (max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}
+  </style>
+</head>
+
+<body style="text-align:center">
+  <script type="text/javascript">
+  // http://stackoverflow.com/questions/24987542/is-there-a-link-to-github-for-downloading-a-file-in-the-latest-release-of-a-repo
+  // Answer: Nope.
+
+  var fiveMinutes = 5 * 60;
+  var Storage = store.namespace('aardwolfclientpackage').session;
+
+  function SetChanges(changes) {
+    changes = changes.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    changes = changes.replace(/(Aardwolf Client Package Major Changes List)\r\n/, '<h3>$1</h3>\r\n');
+    changes = changes.replace(/\n(\-.*?\:)/g, '\n<strong>$1</strong>');
+    changes = changes.replace(/\n(r.*? snapshot|Beta)/g, '\n<em>$1</em>');
+    changes = '<p>' + changes.replace(/(?:\r\n\r\n|\r\r|\n\n)/g, '</p><br><p>').replace(/(?:\r\n|\r|\n)/g, '</p><p>') + '</p>';
+    changes = changes.replace(/(https?\:\/\/[^)\n\s<]+)/g, '<a href="$1">$1</a>');
+    $("#changes").html(changes);
+  };
+
+  function SetAllReleasesInfo(allReleasesInfo) {
+    $("#all-releases-info").html(allReleasesInfo);
+  }
+
+  function SetLatestReleaseInfo(rname, url, info) {
+    $("#release-info").html(info);
+  }
+
+  function GetChangesFile() {
+    var changes = Storage.get('changes');
+    if (changes) {
+      SetChanges(changes);
+    } else {
+      $.get("https://raw.githubusercontent.com/fiendish/aardwolfclientpackage/MUSHclient/MUSHclient/AardwolfPackageChanges.txt?nocache=" + (new Date()).getTime())
+        .done(function (changes) {
+          Storage.set('changes', changes, fiveMinutes);
+          SetChanges(changes);
+        });
+    }
+  }
+
+  function ParseLinkHeader(link_header) {
+      var links = {};
+      var parts = link_header.split(",");
+      for(var i=0; i<parts.length; i++) {
+          var section = parts[i].split(";");
+          var url = section[0].replace(/<(.*)>/, "$1").trim();
+          var name = section[1].replace(/rel="(.*)"/, "$1").trim();
+          links[name] = url;
+      }
+      return links;
+  }
+
+  function GetAllReleasesInfo() {
+    var allReleasesInfo = Storage.get('allReleasesInfo');
+    var rname = Storage.get("rname");
+    var url = Storage.get("url");
+    var info = Storage.get("info");
+    var latest_rev = "r2224";
+
+    if ((latest_rev == rname) && allReleasesInfo && rname && url && info) {
+      SetAllReleasesInfo(allReleasesInfo);
+      SetLatestReleaseInfo(rname, url, info);
+    } else {
+      var total_download_count = 0;
+
+      function CountAssets(githubURL) {
+        $.ajax({
+          url: githubURL,
+          headers: {
+            "Accept": "application/vnd.github.v3+json"
+          },
+          dataType: "json",
+          success: function (releases, status, jqXHR) {
+            for (var i = 0; i < releases.length; i++) {
+              for (var j = 0; j < releases[i].assets.length; j++) {
+                total_download_count += releases[i].assets[j].download_count;
+              }
+            }
+            var links = ParseLinkHeader(jqXHR.getResponseHeader("Link"))
+            if (!("prev" in links)) {
+              var release = releases[0];
+              var asset = release.assets[0];
+              var downloadCount = asset.download_count;
+              var oneHour = 60 * 60 * 1000;
+              var oneDay = 24 * oneHour;
+              var dateDiff = new Date() - new Date(asset.updated_at);
+              var timeAgo;
+              if (dateDiff < oneDay) {
+                timeAgo = (dateDiff / oneHour).toFixed(1) + " hours ago";
+              } else {
+                timeAgo = (dateDiff / oneDay).toFixed(1) + " days ago";
+              }
+              var rname = release.name;
+              var url = asset.browser_download_url;
+              var info = "The latest Aardwolf MUSHclient Package version is: <span class='number'>" + release.name + "</span><br>Its installer was created <span class='number'>" + timeAgo + "</span> and has been downloaded <span class='number'>" + downloadCount.toLocaleString() + "</span> times.";
+              Storage.set('rname', rname, fiveMinutes);
+              Storage.set('url', url, fiveMinutes);
+              Storage.set('info', info, fiveMinutes);
+              SetLatestReleaseInfo(rname, url, info);
+            } 
+
+            if ("next" in links) {
+              CountAssets(links["next"]);
+            } else{
+              var allReleasesInfo = "<span style='opacity: 0.5'>All installer versions combined since " + releases[releases.length - 1].name + " (the oldest found installer build), <span class='number'>" + total_download_count.toLocaleString() + "</span> times.";
+              Storage.set('allReleasesInfo', allReleasesInfo, fiveMinutes);
+              SetAllReleasesInfo(allReleasesInfo);
+            }
+          }
+        });
+      }
+
+      CountAssets("https://api.github.com/repos/fiendish/aardwolfclientpackage/releases?per_page=100");
+    }
+  }
+
+  $(document)
+    .ready(function () {
+      GetAllReleasesInfo();
+      GetChangesFile();
+    });
+  </script>
+  <br>
+  <h1>Aardwolf MUSHclient Package Installer</h1>
+  <div id="release-info"></div>
+  <div id="all-releases-info"></div>
+  <br> Extensive documentation for the Aardwolf MUSHclient Package is available at <a href="https://github.com/fiendish/aardwolfclientpackage/wiki">https://github.com/fiendish/aardwolfclientpackage/wiki</a> and assistance is provided in-game on the tech channel.
+  <div>
+    <div class="description">
+    <h2>Important installer details:</h2>
+    <ol>
+        <li>
+        This page has download links for two variants of the Aardwolf MUSHclient Package installer.<br> The only difference between them is that, if a world file is not already present, the one called the "non-visual base" installer initially loads a different default set of plugins in the default Aardwolf world file, eschewing graphical plugins that are incompatible with text to speech interaction. It still loads the mapper plugin, just with the visual map display hidden.
+        </li>
+        <li>
+        These installers do not overwrite your existing Aardwolf.db mapper database file, Aardwolf.mcl world file, or plugin state files, so you no longer need to do any of the old manual file edits, imports, or copies to complete an upgrade. <em style="color:darkgreen">You can just install over the same location as your previous Aardwolf MUSHclient install and that's it.</em> If you're concerned about accidents, you can always make a backup copy of your whole MUSHclient folder first.
+        </li>
+        <li>
+        For information about scary warnings from your computer relating to unsigned executables or potential viruses, please read <a href="trust_faq.html">Trust FAQ</a>.
+        </li>
+        </ol>
+    </div>
+    <div>
+    Quit MUSHclient before running any update installer.<br><br>
+    <a class="button" href="https://github.com/fiendish/aardwolfclientpackage/releases/download/r2224/Aardwolf_MUSHclient_r2224_no_visuals.exe">Download the r2224 non-visual base for screen readers</a>
+    &nbsp;&nbsp;or&nbsp;&nbsp;
+    <a class="button" href="https://github.com/fiendish/aardwolfclientpackage/releases/download/r2224/Aardwolf_MUSHclient_r2224.exe">Download r2224 with full visuals</a>
+    </div>
+    <div class="description">
+    <h3>Need zip archives instead?</h3>
+    <div style="max-width:50em">
+    Upgrading with a zipped copy of the new MUSHclient directory is more complicated than with one of the installers above, but if for some reason you require it, read <a href="unzip_upgrading.html">Unzip Upgrading</a>.
+    </div>
+    </div>
+</div>
+  <br>
+  <div id="changes-wrapper">
+    <hr>
+    <br>
+    <div id="changes"></div>
+  </div>
+
+  <a href="https://github.com/fiendish/aardwolfclientpackage" class="github-corner" aria-label="View source on Github"><svg width="80" height="80" viewBox="0 0 250 250" style="fill:#151513; color:#fff; position: absolute; top: 0; border: 0; right: 0;" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+</body>
+
+</html>
