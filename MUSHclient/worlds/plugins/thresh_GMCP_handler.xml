@@ -74,9 +74,9 @@ if rr and rw then
 end
 ident = ident_ok and ident or "{ident failed}"
 
-function OnPluginListChanged()
-   dofile "lua/thresh_requirements.lua"
-end
+--function OnPluginListChanged()
+--   dofile "lua/thresh_requirements.lua"
+--end
 
 local GMCP      = 201
 local GMCPDebug = tonumber(GetVariable("GMCPDebug")) or 0
