@@ -45,49 +45,7 @@ For Mushclient specific information on how to access GMCP data, see:
    sequence="100"
    ignore_case="y"
 ></alias>
-
-<alias
-   match="sendgmcp *"
-   script="GMCP_Alias"
-   enabled="y"
-   send_to="12"
-   sequence="100"
-></alias>
-
 </aliases>
-
-<triggers>
-<trigger
-   enabled="y"
-   regexp="y"
-   match="^You will (now|no longer) see prompts\.$"
-   sequence="100"
-   send_to="12"
->
-<send>
-   if "%1" == "now" then
-      OnPluginTelnetSubnegotiation(201, 'config { "prompt" : "YES" }')
-   else
-      OnPluginTelnetSubnegotiation(201, 'config { "prompt" : "NO" }')
-   end
-</send>
-</trigger>
-<trigger
-   enabled="y"
-   regexp="y"
-   match="^Compact mode (set|removed)\.$"
-   sequence="100"
-   send_to="12"
->
-<send>
-   if "%1" == "set" then
-      OnPluginTelnetSubnegotiation(201, 'config { "compact" : "YES" }')
-   else
-      OnPluginTelnetSubnegotiation(201, 'config { "compact" : "NO" }')
-   end
-</send>
-</trigger>
-</triggers>
 
 <!--  Get our standard constants -->
 
@@ -99,7 +57,7 @@ require "json"
 require "serialize"
 require "gmcphelper"
 
---[[ luacom = require "luacom"
+ luacom = require "luacom"
 if luacom then
    wshell = luacom.CreateObject("WScript.Shell")
 end
@@ -119,7 +77,7 @@ ident = ident_ok and ident or "{ident failed}"
 function OnPluginListChanged()
    dofile "lua/thresh_requirements.lua"
 end
---]]
+
 local GMCP      = 201
 local GMCPDebug = tonumber(GetVariable("GMCPDebug")) or 0
 
@@ -150,11 +108,6 @@ function gmcpdebug(name, line, wildcards)
       msg = "verbose"
    end
    ColourNote ("#FFAF00", "", "GMCPDebug: " .. msg)
-end
-
-
-function GMCP_Alias (name, line, wildcards)
-   Send_GMCP_Packet(wildcards[1])
 end
 
 function OnPluginTelnetSubnegotiation (msg_type, data)
@@ -205,11 +158,12 @@ function OnPluginTelnetSubnegotiation (msg_type, data)
       -- If you had also run back out of the area, then you'd also be receiving room.area information
       -- after five moves for an area you are no longer in.
       -- I do this next part for your own good.
-      if (message == "room.info") then
-         gmcpdata["room"] = {}
-         prev_node = gmcpdata["room"]
-      end
-
+      --
+      --if (message == "room.info") then
+      --   gmcpdata["room"] = {}
+      --   prev_node = gmcpdata["room"]
+      --end
+      
       -- For some reason we've historically treated numbers as strings.
       -- It's bad form, but we should preserve that behavior.
       function stringify(things)
@@ -268,30 +222,16 @@ end
 function OnPluginSaveState()
    SetVariable("GMCPDebug", GMCPDebug)
 end
---[[
-function OnPluginConnect()
-   Send_GMCP_Packet("config compact")
-   Send_GMCP_Packet("config prompt")
-   Send_GMCP_Packet("config xterm yes")
-   Send_GMCP_Packet("rawcolor on")
-   Send_GMCP_Packet("request char")
-   Send_GMCP_Packet("request room")
-   Send_GMCP_Packet("request area")
-   Send_GMCP_Packet("request quest")
-   Send_GMCP_Packet("request group")
-end
---]]
+
 function OnPluginTelnetRequest (msg_type, data)
    if msg_type == GMCP and data == "WILL" then
       return true
    end -- if
 
    if msg_type == GMCP and data == "SENT_DO" then
+      Note ("Enabling GMCP.") 
       -- This hard-coded block may need to be made into a config table as we add more message types.
-      Send_GMCP_Packet (
-         string.format ('Core.Hello { "client": "MUSHclient", "version": "%s", "ident": "%s" }',
-                        Version().." r"..thresh_extras.PackageVersionFull(), ident)
-      )
+      Send_GMCP_Packet (string.format ('Core.Hello { "client": "MUSHclient", "version": "%s" }', Version()))
       Send_GMCP_Packet ('Core.Supports.Set [ "Char 1", "Char.Skills 1", "Char.Items 1" ]') -- , "Comm 1", "Room 1"
       return true
    end
@@ -299,12 +239,12 @@ function OnPluginTelnetRequest (msg_type, data)
    return false
 end
 
---[[function OnPluginDisable()
+function OnPluginDisable()
    EnablePlugin(GetPluginID(), true)
    ColourNote("white", "blue", "You are not allowed to disable the "..
    GetPluginInfo(GetPluginID(), 1).." plugin. It is necessary for other plugins.")
 end
-
+--[[
 function getmemoryusage()
   collectgarbage('collect')
   return collectgarbage('count')
