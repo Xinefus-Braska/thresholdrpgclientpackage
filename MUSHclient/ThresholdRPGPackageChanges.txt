@@ -1,4 +1,7 @@
 ThresholdRPG Client Package Major Changes List
 
+r0001 snapshot
+- trying to get all the right files in the right places! 
+
 Beta
 - initial beta release (Yay!)
