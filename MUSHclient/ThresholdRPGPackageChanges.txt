@@ -1,5 +1,9 @@
 ThresholdRPG Client Package Major Changes List
 
+r0002
+- Got the GMCP handler working
+- Starting on health bars
+
 r0001 snapshot
 - trying to get all the right files in the right places! 
 
