@@ -8,7 +8,7 @@ image: Visual Studio 2015
 clone_depth: 1
 environment:
   auth_token:
-    secure: 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
+    secure: 1/YzfZF08odHpj0/qiabszV9NlMUQZUY+vmQfZAQc/8COXAzk9oAtN0x7XGtsdnM
 install:
 - ps: pushd C:\
 - ps: Start-FileDownload 'https://github.com/fiendish/LuaJIT-build/releases/download/latest/lua51.dll'
@@ -73,7 +73,7 @@ deploy:
 - provider: GitHub
   tag: $(PACKAGE_VERSION)
   auth_token:
-    secure: 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
+    secure: 1/YzfZF08odHpj0/qiabszV9NlMUQZUY+vmQfZAQc/8COXAzk9oAtN0x7XGtsdnM
   artifact: /ThresholdRPG_MUSHclient_r.*\.(exe|zip)/
   force_update: true
   on:
