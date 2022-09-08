@@ -2,7 +2,7 @@
 <!DOCTYPE muclient>
 <muclient>
 <plugin
-   name="ThresholdRPG_Package_Requirements"
+   name="Thresh_Package_Requirements"
    author="Xinefus"
    id="50f4e1fc89999ce02a216a3c"
    language="Lua"
@@ -22,26 +22,6 @@
    ignore_case="y"
    script="plugin_check_alias"
 ></alias>
-
-<alias
-   match="^thresh sounds in background$"
-   enabled="y"
-   sequence="100"
-   regexp="y"
-   ignore_case="y"
-   send_to="12"
->
-<send>
-   if GetOption("play_sounds_in_background") == 0 then 
-      SetOption("play_sounds_in_background", 1)
-      Note("Sounds will now continue to play when the client in the background.")
-   else
-      SetOption("play_sounds_in_background", 0)
-      Note("Sounds will now only play while the client is active.")
-   end
-</send>
-</alias>
-
 </aliases>
 
 <script>
@@ -50,28 +30,28 @@ require "checkplugin"
 
 
 required_plugins = {
-   ["162bba4a5ecef2bb32b5652f"] = "thresh_package_update_checker",
+   --["162bba4a5ecef2bb32b5652f"] = "thresh_package_update_checker",
    ["abc1a0944ae4af7586ce88dc"] = "thresh_repaint_buffer",
    ["3e7dedbe37e44942dd46d264"] = "thresh_GMCP_handler",
-   ["55616ea13339bc68e963e1f8"] = "thresh_chat_echo",
-   ["04d9e64f835452b045b427a7"] = "thresh_Copy_Colour_Codes",
+   --["55616ea13339bc68e963e1f8"] = "thresh_chat_echo",
+   --["04d9e64f835452b045b427a7"] = "thresh_Copy_Colour_Codes",
    ["60ad15b3cb2a5757d2611c28"] = "thresh_help",
-   ["9f796334ab9ed476ef44f1dc"] = "thresh_new_connection",
+   --["9f796334ab9ed476ef44f1dc"] = "thresh_new_connection",
    ["462b665ecb569efbf261422f"] = "thresh_miniwindow_z_order_monitor",
    ["b9315e040989d3f81f4328d6"] = "thresh_Theme_Controller"
 }
 
 optional_visual_plugins = {
-   ["b555825a4a5700c35fa80780"] = "thresh_channels_fiendish",
+   --["b555825a4a5700c35fa80780"] = "thresh_channels_fiendish",
    ["c293f9e7f04dde889f65cb90"] = "thresh_layout",
    ["ef4a86dbc9cd4dd6f4c69385"] = "thresh_health_bars_gmcp",
-   ["ef4a86dbc9cd4dd6f4c69386"] = "thresh_statmon_gmcp",
-   ["f178e68512c685b3be1e9b07"] = "thresh_group_monitor_gmcp",
+   --["ef4a86dbc9cd4dd6f4c69386"] = "thresh_statmon_gmcp",
+   --["f178e68512c685b3be1e9b07"] = "thresh_group_monitor_gmcp",
    --["3f498d929793c12cb70fb59e"] = "aard_ASCII_map",
    --["60840c9013c7cc57777ae0ac"] = "Aardwolf_Bigmap_Graphical",
    ["74524d1272786aaf04e9487d"] = "thresh_splitscreen_scrollback",
    --["0cbb10309587f0ee15ba78ce"] = "aard_inventory_serials",
-   ["a1965272c8ca966b76f36fa3"] = "thresh_ingame_help_window"
+   --["a1965272c8ca966b76f36fa3"] = "thresh_ingame_help_window"
 }
 
 optional_vimode_plugins = {

@@ -8,11 +8,11 @@
 <muclient>
 
 <plugin
-   name="Aardwolf_Main_Layout"
+   name="Thresh_Main_Layout"
    author="Fiendish"
    id="c293f9e7f04dde889f65cb90"
    language="Lua"
-   purpose="Layout Aardwolf Main Screen"
+   purpose="Layout ThresholdRPG Main Screen"
    date_written="2010-08-27 18:32:06"
    requires="4.56"
    version="1.0"
@@ -24,7 +24,7 @@
 
 <alias
    script="LayoutCommand"
-   match="^aard layout( lock| unlock| save| forget| restore| list| help| reset)?( .*)?"
+   match="^thresh layout( lock| unlock| save| forget| restore| list| help| reset)?( .*)?"
    regexp="y"
    enabled="y"
    sequence="100"
@@ -40,9 +40,9 @@
 ></alias>
 
 <alias
-   name="resetaard"
-   script="reset_aard"
-   match="resetaard"
+   name="resetthresh"
+   script="reset_thresh"
+   match="resetthresh"
    enabled="y"
    sequence="100"
    ignore_case="y"
@@ -56,9 +56,9 @@
 require "mw_theme_base"
 require "scrollbar"
 
-function OnPluginListChanged()
-   dofile "lua/aard_requirements.lua"
-end
+--function OnPluginListChanged()
+--   dofile "lua/thresh_requirements.lua"
+--end
 
 default_top = 139
 default_bottom = 545
@@ -77,16 +77,16 @@ require "serialize"
 
 function LayoutHelp()
    print("")
-   print("Aardwolf MUSHclient Layout Command Help")
+   print("ThresholdRPG MUSHclient Layout Command Help")
    print("--------------------------------------------------------------------------------")
-   print("aard layout lock               :  prevent dragging miniwindows")
-   print("aard layout unlock             :  allow dragging miniwindows")
-   print("aard layout save <keyword>     :  store the current layout as the given keyword")
-   print("aard layout restore <keyword>  :  restore the layout for the given keyword")
-   print("aard layout forget <keyword>   :  forget the layout for the given keyword")
-   print("aard layout list               :  list all stored layout keywords")
-   print("aard layout help               :  show this command help")
-   print("aard layout reset              :  like resetaard, but better")
+   print("thresh layout lock               :  prevent dragging miniwindows")
+   print("thresh layout unlock             :  allow dragging miniwindows")
+   print("thresh layout save <keyword>     :  store the current layout as the given keyword")
+   print("thresh layout restore <keyword>  :  restore the layout for the given keyword")
+   print("thresh layout forget <keyword>   :  forget the layout for the given keyword")
+   print("thresh layout list               :  list all stored layout keywords")
+   print("thresh layout help               :  show this command help")
+   print("thresh layout reset              :  like resetthresh, but better")
    print("")
    LockStatus()
    print("")
@@ -128,9 +128,9 @@ function LayoutCommand(name, line, wildcards)
       end
    elseif wildcards[1] == " reset" then
       reset_main()
-      EnableAlias("resetaard", false)
-      Execute("resetaard")
-      EnableAlias("resetaard", true)
+      EnableAlias("resetthresh", false)
+      Execute("resetthresh")
+      EnableAlias("resetthresh", true)
    elseif wildcards[1] == "" or wildcards[1] == " help" then
       LayoutHelp()
    end
@@ -178,7 +178,7 @@ function LayoutStore(key)
    miniwindows = WindowList()
    if miniwindows then
       current_layout = {
-         ["aard_layout_trect"] = {
+         ["thresh_layout_trect"] = {
                ["trleft"] = textrect_left,
                ["trright"] = textrect_right,
                ["trtop"] = textrect_top,
@@ -205,7 +205,7 @@ function LayoutRestore(key)
    all_layouts = FetchLayouts()
    layout = all_layouts[key]
    if layout then
-      trect = layout["aard_layout_trect"]
+      trect = layout["thresh_layout_trect"]
       textrect_left = trect["trleft"]
       textrect_right = trect["trright"]
       textrect_top = trect["trtop"]
@@ -213,7 +213,7 @@ function LayoutRestore(key)
       SaveLayout()
       check_geometry()
       for mwid,rect in pairs(layout) do
-         if mwid ~= "aard_layout_trect" then
+         if mwid ~= "thresh_layout_trect" then
             bg = WindowInfo(mwid, 9)
             if bg then
                pid = WindowInfo(mwid, 23)
@@ -370,7 +370,7 @@ function SaveEnabled()
    SetVariable ("enabled", tostring (GetPluginInfo (GetPluginID (), 17)))
 end
 
-function reset_aard()
+function reset_thresh()
    reset_main()
    LayoutHelp()
 end
