@@ -30,7 +30,7 @@ install:
 - ps: |
       function Insert-Content { param ( [String]$Path ); process { $( ,$_; Get-Content $Path -ea SilentlyContinue) | Out-File -encoding ASCII $Path } }
       "thresh_req_novisuals_mode = true  -- this line added by the no-visuals installer`r`n" | Insert-Content .\MUSHclient\lua\thresh_requirements.lua
-      Move-Item .\MUSHclient\worlds\ThresholdRPG_no_visuals.mcl .\MUSHclient\worlds\ThresholdRPG.mcl -force
+      Move-Item .\MUSHclient\worlds\ThresholdRPG.mcl -force
       $env:VIAPPOUT = 'OutFile "ThresholdRPG_MUSHclient_${PackageVersion}_no_visuals.exe"'
       (Get-Content threshmush_installer.nsi) | ForEach-Object { $_ -replace "OutFile.+" , "$env:VIAPPOUT" } | Set-Content threshmush_installer.nsi
 - cmd: '"C:\Program Files (x86)\NSIS\makensis.exe" threshmush_installer.nsi'
@@ -77,6 +77,6 @@ deploy:
   artifact: /ThresholdRPG_MUSHclient_r.*\.(exe|zip)/
   force_update: true
   on:
-    branch: MUSHclient
+    branch: thresholdrpg
 after_deploy:
 - cmd:
