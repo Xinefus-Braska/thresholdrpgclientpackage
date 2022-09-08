@@ -22,9 +22,9 @@
 
 usedNumbers = {}
 
-function OnPluginListChanged()
-   dofile "lua/aard_requirements.lua"
-end
+--function OnPluginListChanged()
+--   dofile "lua/aard_requirements.lua"
+--end
 
 function OnPluginInstall()
    usedNumbers = {}

@@ -26,7 +26,7 @@ ThresholdRPG GCMP based health bars
 
 <aliases>
 <alias
-   match="resetaard"
+   match="resetthresh"
    enabled="y"
    sequence="100"
    ignore_case="y"
@@ -93,7 +93,7 @@ string.rpad = function(str, len, char)
    return str .. string.rep(char, len - #str)
 end
 
-function reset_aard()
+function reset_thresh()
    font_name = default_font_name
    font_size = default_font_size
    WindowPosition(win, default_x, default_y, 0, 18)
@@ -612,9 +612,9 @@ end -- OnPluginEnable
 
 win = GetPluginID()
 
-function OnPluginListChanged()
-   dofile "lua/aard_requirements.lua"
-end
+--function OnPluginListChanged()
+--   dofile "lua/aard_requirements.lua"
+--end
 
 function OnPluginWorldOutputResized()
    if (installed == true) and (((GetInfo(281)-windowinfo.window_left) > effectiveWidth) or ((GetInfo(281)-windowinfo.window_left) < width)) then
@@ -685,10 +685,6 @@ function OnPluginInstall()
 
    resize_window()
 
-   if IsConnected() then
-      Send_GMCP_Packet("request char")
-   end
-
    installed = true
    WindowShow(win, true)
 end
@@ -701,12 +697,12 @@ function resize_window()
 
    DisplayStatsPage()
 end
-
+--[[
 function getmemoryusage()
   collectgarbage('collect')
   return collectgarbage('count')
 end
-
+--]]
 ]]>
 </script>
 </muclient>
