@@ -38,7 +38,7 @@ ThresholdRPG GCMP based health bars
 
 <script>
 <![CDATA[
-require "thresh_register_z_on_create"
+require "aard_register_z_on_create"
 
 require "mw_theme_base"
 
@@ -59,9 +59,9 @@ local stacked = 0
 local showLabels = 1
 local reverseTNL = 1
 graphicalMode = tonumber(GetVariable("graphicalMode") or 1)
-local defaultShowBar = {Health={"Health:",true,"Health:",0x00ff00,0x004400}, Mana={"Mana  :",true,"Mana:",0xff5500,0x442200}, Moves={"Moves :",true,"Moves:",0x00ffff,0x004444}, TNL={"TNL   :",true,"TNL:",0xffffff,0x444444}, Enemy={"Enemy :",true,"Enemy:",0x0000ff,0x000044}, Align={"Align :",true, "Alignment:",0x0000ff,0x00ffff}}
+local defaultShowBar = {Health={"HP :",true,"HP :",0x00ff00,0x004400}, Mana={"SP :",true,"SP :",0xff5500,0x442200}, Moves={"EP :",true,"EP :",0x00ffff,0x004444}, TNL={"TNL:",true,"TNL:",0xffffff,0x444444}, Enemy={"Foe:",true,"Foe:",0x0000ff,0x000044}}
 showBar = defaultShowBar
-local barIndex = {"Health", "Mana", "Moves", "TNL", "Enemy", "Align"}
+local barIndex = {"Health", "Mana", "Moves", "TNL", "Enemy"}
 
 thresh1active = tonumber (GetVariable("thresh1active")) or 0
 thresh2active = tonumber (GetVariable("thresh2active")) or 0
@@ -230,25 +230,41 @@ function DisplayStatsPage()
          end
       end
 
-      DoNextSimpleBar("Health", gmcp_char.vitals.hp, gmcp_char.maxstats.maxhp)
-      DoNextSimpleBar("Mana", gmcp_char.vitals.mana, gmcp_char.maxstats.maxmana)
-      DoNextSimpleBar("Moves", gmcp_char.vitals.moves, gmcp_char.maxstats.maxmoves)
-
-      local tnl = gmcp_char.status.tnl
-      local perlevel = gmcp_char.base.perlevel
-      -- switch from "to next level" to "current level experience"
-      if (reverseTNL == 0) then
-         DoNextSimpleBar("TNL", tnl, perlevel)
-      else
-         DoNextSimpleBar("TNL", tnl, perlevel, true, "Exp   :", "Exp:")
+      DoNextSimpleBar("Health", current_hp, max_hp)
+      DoNextSimpleBar("Mana", current_sp, max_sp)
+      DoNextSimpleBar("Moves", current_ep, max_ep)
+      
+      bar = "TNL"
+      if (showBar[bar][2] == true) then          
+         if showLabels == 1 then
+            if stacked == 1 then
+               WindowText(win, font_id, showBar[bar][1], xpos,  ypos, 0, 0, showBar[bar][4], false)
+            else
+               xpos = xpos + WindowText(win, font_id, showBar[bar][3], xpos,  ypos, 0, 0, showBar[bar][4], false)
+            end
+         end   
+         if graphicalMode == 1 then
+            gauge(win,showBar[bar][3],tonumber(tnl),100,xpos+label_width,ypos,bar_width,line_height,showBar[bar][4],0x000000,num_ticks,0x000000,showBar[bar][5],nil,flat_gauges==1,movewin_hotspot)
+            if overlay_numbers ~= 0 then
+               txt = string.lpad(tostring(tnl).."%", 4, ' ')
+               txtlen = WindowTextWidth(win,font_id,txt)
+               outlined_text(win, font_id, txt, xpos+label_width+((bar_width-txtlen)/2), ypos, 0, 0, 0xeeeeee, utf8)
+            end
+         else
+            xpos = xpos + (((stacked == 0) and 1) or 0)*WindowText(win, font_id, " ["..string.format("%3d",tnl).."%]", xpos+label_width, ypos, 0, 0, showBar[bar][4], false)
+         end
+         if stacked == 1 then
+            ypos = ypos + line_height + 1
+         else
+            xpos = xpos+(graphicalMode*bar_width)+LEFT_MARGIN
+         end
       end
 
       bar = "Enemy"
       if (showBar[bar][2] == true) then
-         fighting = gmcp_char.status.enemy
-         if fighting ~= "" then
-            enemypct = gmcp_char.status.enemypct
-            if enemypct ~= "" then
+         --fighting = foe_name
+         if tostring(foe_name) ~= "none" then
+            if enemypct ~= "0" or "" then
                if showLabels == 1 then
                   if stacked == 1 then
                      WindowText(win, font_id, showBar[bar][1], xpos,  ypos, 0, 0, showBar[bar][4], false)
@@ -260,7 +276,7 @@ function DisplayStatsPage()
             if graphicalMode == 1 then
                gauge(win,showBar[bar][3],tonumber(enemypct),100,xpos+label_width,ypos,bar_width,line_height,showBar[bar][4],0x000000,num_ticks,0x000000,showBar[bar][5],nil,flat_gauges==1,movewin_hotspot)
                if overlay_numbers ~= 0 then
-                  txt = string.lpad(enemypct.."%", 4, ' ')
+                  txt = string.lpad(tostring(enemypct).."%", 4, ' ')
                   txtlen = WindowTextWidth(win,font_id,txt)
                   outlined_text(win, font_id, txt, xpos+label_width+((bar_width-txtlen)/2), ypos, 0, 0, 0xeeeeee, utf8)
                end
@@ -287,48 +303,8 @@ function DisplayStatsPage()
             xpos = xpos+(graphicalMode*bar_width)+LEFT_MARGIN
          end
       end
-
-      bar = "Align"
-      if (showBar[bar][2] == true) then
-         alignment = tonumber(gmcp_char.status.align)
-         if alignment ~= nil then
-            zeroed_alignment = alignment+2500
-            bar_colour = ((zeroed_alignment<=1625 and showBar[bar][4]) or ((zeroed_alignment>=3375 and showBar[bar][5]) or 0xcccccc))
-            if bar_colour ~= prev_bar_colour then
-               local bch = string.format("%06X", bar_colour)
-               local reverse = "#"..bch:sub(5,6)..bch:sub(3,4)..bch:sub(1,2)
-               local c = colors.new(reverse):hue_offset(-15):lighten_by(0.60):to_rgb()
-               dark_bar_colour = ColourNameToRGB(c)
-            end
-            prev_bar_colour = bar_colour
-            if showLabels == 1 then
-               if stacked == 1 then
-                  WindowText(win, font_id, showBar[bar][1], xpos,  ypos, 0, 0, bar_colour, false)
-               else
-                  xpos = xpos + WindowText(win, font_id, showBar[bar][3], xpos,  ypos, 0, 0, bar_colour, false)
-               end
-            end
-            if graphicalMode == 1 then
-               WindowLine (win, xpos+label_width+math.max(0,line_height/2), math.ceil(ypos+line_height/2), xpos+label_width+math.max(0,bar_width-line_height/2), math.ceil(ypos+line_height/2), bar_colour, 0+0x0200, 2)
-               WindowCircleOp (win, 1, xpos+label_width+(zeroed_alignment/5000)*(bar_width-line_height), ypos, xpos+label_width+(zeroed_alignment/5000)*(bar_width-line_height)+line_height, ypos+line_height, dark_bar_colour, 0, 2, bar_colour, 0)
-
-               -- add ticks at alignment change boundaries
-               local tick_1 = xpos + label_width + (-874 + 2500) / 5000 * (bar_width)
-               local tick_2 = xpos + label_width + (874 + 2500) / 5000 * (bar_width)
-               WindowLine (win, tick_1, ypos, tick_1, ypos+line_height, bar_colour, 0+0x0200, 2)
-               WindowLine (win, tick_2, ypos, tick_2, ypos+line_height, bar_colour, 0+0x0200, 2)
-            else
-               xpos = xpos + (((stacked == 0) and 1) or 0)*WindowText(win, font_id, " ["..string.format("%5s",alignment).."]", xpos+label_width, ypos, 0, 0, bar_colour, false)
-            end
-            if stacked == 1 then
-               ypos = ypos + line_height + 1
-            else
-               xpos = xpos+(graphicalMode*bar_width)+LEFT_MARGIN
-            end
-         end
-      end
    end
-
+   
    Theme.DressWindow(win, nil, nil)
    Theme.AddResizeTag(win, 1, nil, nil, "MouseDown", "ResizeMoveCallback", "ResizeReleaseCallback")
 
@@ -477,21 +453,52 @@ function OnPluginBroadcast (msg, id, name, text)
          return
       end
 
-      if (text == "char.base" or text == "char.vitals" or text == "char.status" or text == "char.maxstats") then
-         if text == "char.base" then
-            gmcp_char.base = gmcp("char.base")
-         elseif text == "char.vitals" then
-            gmcp_char.vitals = gmcp("char.vitals")
-         elseif text == "char.status" then
-            gmcp_char.status = gmcp("char.status")
-         else
-            gmcp_char.maxstats = gmcp("char.maxstats")
+      if (text == "Char.Vitals" or text == "Char.Status" or text == "Char.Afflictions") then
+         if text == "Char.Vitals" then
+            gmcp_char.vitals = gmcp("Char.Vitals")
+            if gmcp_char.vitals.hp then
+               current_hp = gmcp_char.vitals.hp
+            end
+            if gmcp_char.vitals.maxhp then
+               max_hp = gmcp_char.vitals.maxhp
+            end
+            if gmcp_char.vitals.sp then
+               current_sp = gmcp_char.vitals.sp
+            end
+            if gmcp_char.vitals.maxsp then
+               max_sp = gmcp_char.vitals.maxsp
+            end
+            if gmcp_char.vitals.ep then
+               current_ep = gmcp_char.vitals.ep
+            end
+            if gmcp_char.vitals.maxep then
+               max_ep = gmcp_char.vitals.maxep
+            end
+         end
+         if text == "Char.Status" then
+            gmcp_char.status = gmcp("Char.Status")
+            if gmcp_char.status.tnl then 
+               tnl = gmcp_char.status.tnl
+            end
+            if gmcp_char.status.xp then 
+               current_xp = gmcp_char.status.xp
+            end
+            --perlevel = tonumber(current_xp)/(tonumber(tnl)/100)
+            --print("perlevel:",perlevel)
+            if gmcp_char.status.foe_name then
+               foe_name = gmcp_char.status.foe_name or ""
+               print("Foe Name:", foe_name)
+            end
+            if gmcp_char.status.foe_health then
+               enemypct = gmcp_char.status.foe_health or ""
+               print("Foe Health:", enemypct.."%")
+            end
          end
 
-         if gmcp_char.base and gmcp_char.vitals and gmcp_char.status and gmcp_char.maxstats then
+         --if gmcp_char.vitals then
             page_built = true
             DisplayStatsPage()
-         end
+         --end
       end
    elseif (id == "462b665ecb569efbf261422f" and msg==996 and text == "re-register z") then
       CallPlugin("462b665ecb569efbf261422f", "registerMiniwindow", win)

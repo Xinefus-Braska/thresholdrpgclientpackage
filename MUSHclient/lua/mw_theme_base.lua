@@ -129,7 +129,7 @@ function theme_has_bad_sha(filename)
 end
 
 local theme_controller_ID = "b9315e040989d3f81f4328d6"
-local theme_controller_name = "aard_Theme_Controller"
+local theme_controller_name = "thresh_Theme_Controller"
 
 function _load_controller()
    if not GetInfo(119) then
