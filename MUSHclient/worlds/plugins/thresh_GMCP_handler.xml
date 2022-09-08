@@ -94,12 +94,12 @@ For Mushclient specific information on how to access GMCP data, see:
 <script>
 <![CDATA[
 
-thresh_extras = require "thresh_lua_extras"
+--thresh_extras = require "thresh_lua_extras"
 require "json"
 require "serialize"
 require "gmcphelper"
 
-luacom = require "luacom"
+--[[ luacom = require "luacom"
 if luacom then
    wshell = luacom.CreateObject("WScript.Shell")
 end
@@ -119,7 +119,7 @@ ident = ident_ok and ident or "{ident failed}"
 function OnPluginListChanged()
    dofile "lua/thresh_requirements.lua"
 end
-
+--]]
 local GMCP      = 201
 local GMCPDebug = tonumber(GetVariable("GMCPDebug")) or 0
 
@@ -256,7 +256,7 @@ function gmcpdata_at_level(what)
    end
    return node
 end
-
+--[[
 function OnPluginInstall()
    BroadcastPlugin(1, "reload") -- reload basically tells other plugins "clear all your gmcp data"
    if IsConnected() then
@@ -264,11 +264,11 @@ function OnPluginInstall()
       OnPluginConnect()
    end
 end
-
+--]]
 function OnPluginSaveState()
    SetVariable("GMCPDebug", GMCPDebug)
 end
-
+--[[
 function OnPluginConnect()
    Send_GMCP_Packet("config compact")
    Send_GMCP_Packet("config prompt")
@@ -280,7 +280,7 @@ function OnPluginConnect()
    Send_GMCP_Packet("request quest")
    Send_GMCP_Packet("request group")
 end
-
+--]]
 function OnPluginTelnetRequest (msg_type, data)
    if msg_type == GMCP and data == "WILL" then
       return true
@@ -299,7 +299,7 @@ function OnPluginTelnetRequest (msg_type, data)
    return false
 end
 
-function OnPluginDisable()
+--[[function OnPluginDisable()
    EnablePlugin(GetPluginID(), true)
    ColourNote("white", "blue", "You are not allowed to disable the "..
    GetPluginInfo(GetPluginID(), 1).." plugin. It is necessary for other plugins.")
@@ -309,7 +309,7 @@ function getmemoryusage()
   collectgarbage('collect')
   return collectgarbage('count')
 end
-
+--]]
 ]]>
 </script>
 </muclient>
