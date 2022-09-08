@@ -48,9 +48,9 @@ before_deploy:
 
     Add-Content "$env:USERPROFILE\.git-credentials" "https://$($env:auth_token):x-oauth-basic@github.com`n"
 
-    git config --global user.name "fiendish"
+    git config --global user.name "Xinefus-Braska"
 
-    git config --global user.email "patcherton.fixesthings@gmail.com"
+    git config --global user.email "hahnhell@gmail.com"
 
     git remote set-branches --add origin 'gh-pages' 2>&1 | write-host
 
