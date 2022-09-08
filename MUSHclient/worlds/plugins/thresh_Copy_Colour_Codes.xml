@@ -15,7 +15,7 @@
 
 <description trim="y">
 Copies text from the output window to the clipboard, with
-Aardwolf colour codes.
+ThresholdRPG colour codes.
 
 To use: highlight text and then:
 
@@ -45,7 +45,7 @@ or: Ctrl + Left-click and select "Copy with Colour"
 require "color_copy"
 
 function OnPluginListChanged()
-   dofile "lua/aard_requirements.lua"
+   dofile "lua/thresh_requirements.lua"
 end
 
 function CopyScript(name, line, wildcs)

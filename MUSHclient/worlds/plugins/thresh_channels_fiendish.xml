@@ -3,8 +3,8 @@
 <!-- Thanks to Orogan for past help. I wish I remembered what with, but I didn't write it down. -->
 <muclient>
 <plugin
-   name="Aardwolf_Chat_Capture_Miniwindow"
-   author="Fiendish"
+   name="ThresholdRPG_Chat_Capture_Miniwindow"
+   author="Xinefus"
    id="b555825a4a5700c35fa80780"
    language="Lua"
    purpose="Move chats to a miniwindow"

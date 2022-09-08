@@ -38,17 +38,17 @@ local function TelnetOption (which, on)
   local IAC, SB, SE = 0xFF, 0xFA, 0xF0
   local TELOPT_WILL, TELOPT_WONT, TELOPT_DO, TELOPT_DONT = 0xFB,0xFC, 0xFD, 0xFE       
   
-  -- Telnet subnegotiation for Aardwolf
-  local AARDWOLF_TELOPT = 102
+  -- Telnet subnegotiation
+  local THRESHOLDRPG_TELOPT = 102
   
   local TELOPT_ON, TELOPT_OFF = 1, 2  -- turn on or off
   
 
 
   if on then
-    SendPkt (string.char (IAC, SB, AARDWOLF_TELOPT, which, TELOPT_ON, IAC, SE)) 
+    SendPkt (string.char (IAC, SB, THRESHOLDRPG_TELOPT, which, TELOPT_ON, IAC, SE)) 
   else
-    SendPkt (string.char (IAC, SB, AARDWOLF_TELOPT, which, TELOPT_OFF, IAC, SE)) 
+    SendPkt (string.char (IAC, SB, THRESHOLDRPG_TELOPT, which, TELOPT_OFF, IAC, SE)) 
   end -- if
   
 end -- TelnetOption

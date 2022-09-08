@@ -3,8 +3,8 @@
 
 <muclient>
 <plugin
-   name="Aardwolf_Chat_Echo"
-   author="Fiendish"
+   name="ThresholdRPG_Chat_Echo"
+   author="Xinefus"
    id="55616ea13339bc68e963e1f8"
    language="Lua"
    purpose="Control whether certain channels get hidden from main output"
